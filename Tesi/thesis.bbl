@@ -1,0 +1,106 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{eeworld_ee_architecture_2024}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=097697ad7e625ed709f430cf1aef6d7d}{%
+           family={{EEWorld News}},
+           familyi={E\bibinitperiod}}}%
+      }
+      \strng{namehash}{097697ad7e625ed709f430cf1aef6d7d}
+      \strng{fullhash}{097697ad7e625ed709f430cf1aef6d7d}
+      \strng{fullhashraw}{097697ad7e625ed709f430cf1aef6d7d}
+      \strng{bibnamehash}{097697ad7e625ed709f430cf1aef6d7d}
+      \strng{authorbibnamehash}{097697ad7e625ed709f430cf1aef6d7d}
+      \strng{authornamehash}{097697ad7e625ed709f430cf1aef6d7d}
+      \strng{authorfullhash}{097697ad7e625ed709f430cf1aef6d7d}
+      \strng{authorfullhashraw}{097697ad7e625ed709f430cf1aef6d7d}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Evolution of Automotive E/E Architecture: From Distributed to Zonal Centralised}
+      \field{urlday}{2}
+      \field{urlmonth}{7}
+      \field{urlyear}{2026}
+      \field{year}{2024}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://eeworld.com.cn
+      \endverb
+      \verb{url}
+      \verb https://eeworld.com.cn
+      \endverb
+    \endentry
+    \entry{bosch_canfd_2012}{report}{}{}
+      \name{author}{1}{}{%
+        {{hash=f4161f96f50bf311e703f86e732ae197}{%
+           family={{Robert Bosch GmbH}},
+           familyi={R\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Robert Bosch GmbH}%
+      }
+      \strng{namehash}{f4161f96f50bf311e703f86e732ae197}
+      \strng{fullhash}{f4161f96f50bf311e703f86e732ae197}
+      \strng{fullhashraw}{f4161f96f50bf311e703f86e732ae197}
+      \strng{bibnamehash}{f4161f96f50bf311e703f86e732ae197}
+      \strng{authorbibnamehash}{f4161f96f50bf311e703f86e732ae197}
+      \strng{authornamehash}{f4161f96f50bf311e703f86e732ae197}
+      \strng{authorfullhash}{f4161f96f50bf311e703f86e732ae197}
+      \strng{authorfullhashraw}{f4161f96f50bf311e703f86e732ae197}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{CAN with Flexible Data-Rate Specification, Version 1.0}
+      \field{type}{White Paper}
+      \field{year}{2012}
+    \endentry
+    \entry{ieee_ethernet_2015}{standard}{}{}
+      \name{author}{1}{}{%
+        {{hash=6b600542ba3d4a21aea8e7d8ee988932}{%
+           family={{IEEE Computer Society}},
+           familyi={I\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{6b600542ba3d4a21aea8e7d8ee988932}
+      \strng{fullhash}{6b600542ba3d4a21aea8e7d8ee988932}
+      \strng{fullhashraw}{6b600542ba3d4a21aea8e7d8ee988932}
+      \strng{bibnamehash}{6b600542ba3d4a21aea8e7d8ee988932}
+      \strng{authorbibnamehash}{6b600542ba3d4a21aea8e7d8ee988932}
+      \strng{authornamehash}{6b600542ba3d4a21aea8e7d8ee988932}
+      \strng{authorfullhash}{6b600542ba3d4a21aea8e7d8ee988932}
+      \strng{authorfullhashraw}{6b600542ba3d4a21aea8e7d8ee988932}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{number}{IEEE Std 802.3bw-2015}
+      \field{title}{IEEE Standard for Ethernet -- Amendment 1: Physical Layer Specifications and Management Parameters for 100 Mb/s Operation over a Single Balanced Twisted Pair Cable (100BASE-T1)}
+      \field{year}{2015}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

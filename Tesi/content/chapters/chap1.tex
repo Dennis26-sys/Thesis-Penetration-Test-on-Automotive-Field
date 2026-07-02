@@ -1,0 +1,33 @@
+\chapter{Introduction to Automotive system and structure}
+
+\section{Evolution of Automotive Architecture}
+\label{sec:automotive_evolution}
+
+For several decades the design of vehicles was mainly focused on providing a reliable mechanical infrastructure that would be both secure and economical. However with the advancement of embedded technology the paradigm shifted toward providing software-driven platforms that provide services to the user to enhance the commodity of the transportation.
+
+
+
+To support this digital transition, the underlying Electrical and Electronic (E/E) architecture had to evolve through three main topological models \cite{eeworld_ee_architecture_2024}:
+
+\begin{enumerate}
+    \item \textbf{Distributed architecture (The legacy model):} In early electronic systems, every new feature—such as anti-lock braking (ABS) or airbag deployment required a dedicated Electronic Control Unit (ECU). These units were in a closed network state and would not interact with external environments.
+    \item \textbf{Domain control architecture (The current standard):} In this division the architecture is organised into domains according to functionality. Typically, these domains include Powertrain, Chassis, Body, ADAS, and Infotainment.
+    \item \textbf{Zonal Architecture (The Next-Generation Paradigm):} The latest evolutionary step organises the vehicle's network based on physical location (e.g., front, rear, left, right) rather than logical function. Localised "Zonal Gateways" collect data from nearby components and stream it to a redundant central computer, drastically reducing weight and computational overhead.
+\end{enumerate}
+
+
+\subsection{Structural Limitations and Network Evolution}
+The continuous increase in the number of onboard ECUs quickly highlighted severe structural limitations within early E/E architectures, forcing the development of new in vehicle communication protocols:
+
+\begin{itemize}
+    \item \textbf{From Traditional CAN to CAN-FD:} The classic Controller Area Network (CAN) bus has been the backbone of automotive networking for years. However, its limitation of maximum data rate of 1 Mbps and a payload capacity of only 8 bytes per frame became a critical bottleneck. With the increasing number of ECUs the bus suffered from heavy traffic saturation. This led to the introduction of CAN Flexible Data-rate (CAN-FD) \cite{bosch_canfd_2012}, which mitigates these limits by boosting the data phase speed up to 5 Mbps and expanding the payload up to 64 bytes per frame, allowing more telemetry to be transmitted without delaying critical control messages.
+    \item \textbf{The Transition to Automotive Ethernet:} Despite the bandwidth improvements of CAN-FD, modern data-heavy applications such as camera-based ADAS, advanced infotainment, and real-time sensors demand transmission speeds far beyond the capabilities of legacy buses. This has driven the adoption of Automotive Ethernet (standardised under IEEE 100BASE-T1 and 1000BASE-T1) \cite{ieee_ethernet_2015}, which provides high-bandwidth bidirectional communication (100 Mbps to 1 Gbps and beyond) over a single unshielded twisted pair of copper wires.
+\end{itemize}
+
+However, this transition from isolated, low-bandwidth networks to high-speed interconnected topologies has drastically modified the cyber security landscape. Protocols that were originally designed for closed, trusted environments are now exposed to internal and external entry points, turning diagnostic channels into critical surfaces for potential malicious exploits.
+
+
+\section{Electronic Control Units}
+
+\section{CAN Communication Protocol}
+

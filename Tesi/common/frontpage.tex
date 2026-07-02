@@ -1,0 +1,52 @@
+\newgeometry{top=4cm,left=3cm,right=3cm,bottom=4cm,heightrounded}
+\begin{titlepage}
+\centering
+
+% --- INTESTAZIONE ---
+{\institutionfont \textbf{\MakeUppercase{\thesisuniversity}} \par}
+\vspace{\stretch{1.5}}
+{\divisionfont Master's Degree in \thesiscourse \par}
+\vspace{\stretch{2}}
+
+% --- LOGO ---
+\includegraphics[width=60mm]{\thesisuniversitylogo}\\
+\vspace{\stretch{2.5}}
+
+% --- SOTTOTITOLO ---
+{\divisionfont Master's Degree Thesis \par}
+\vspace{\stretch{1.5}}
+
+% --- TITOLO (Configurato in stile \Huge come l'esempio) ---
+{\Huge\rmfamily\textbf{\thesistitle} \par}
+\vspace{\stretch{4}}
+
+% --- BLOCCO NOMI ---
+\makebox[\textwidth]{\null\hfill\def\arraystretch{1.2}%
+\begin{minipage}[t]{.48\textwidth}\raggedright
+    \begin{tabular}[t]{@{}l@{}}
+        \normalsize\sffamily\textbf{\thesissupervisortext} \\
+        \large\rmfamily \thesissupervisoronetitle~\thesissupervisoronename~\thesissupervisoronesurname \\
+        \vspace{4mm} \\ 
+        \normalsize\sffamily\textbf{Internship Tutor} \\
+        \normalsize\sffamily\textbf{\thesistutorcompany} \\
+        \large\rmfamily \thesistutortitle~\thesistutorname~\thesistutorsurname
+    \end{tabular}
+\end{minipage}
+%
+\hfill
+%
+\begin{minipage}[t]{.38\textwidth}\raggedleft
+\begin{tabular}[t]{@{}l@{}}
+    \normalsize\sffamily\textbf{\thesiscandidatetext} \\
+    \large\rmfamily \thesiscandidatename~\thesiscandidatesurname
+\end{tabular}
+\end{minipage}\hfill\null}\\
+
+\vspace{\stretch{3}}
+
+% --- ANNO ACCADEMICO ---
+{\footfont \thesisdate \par}
+%
+\end{titlepage}
+
+\restoregeometry
