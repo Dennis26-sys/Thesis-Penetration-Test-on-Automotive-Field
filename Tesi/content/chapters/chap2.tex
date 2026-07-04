@@ -1,7 +1,19 @@
-\chapter{Chapter Two: Unified Diagnostic Services Protocol}
+\chapter{Unified Diagnostic Services Protocol}\label{ch:uds_protocol}
 
-\section{Overview of ISO 14229 Standard}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+\section{Overview of ISO 14229 Standard}\label{sec:uds_overview}
+
+The Unified Diagnostic Services (\gls{UDS}) protocol, standardized under ISO 14229 \cite{iso_14229_1_2020}, is the de facto global standard for automotive diagnostics, ECU firmware reprogramming, and fault management. Historically, vehicle manufacturers utilized proprietary diagnostic protocols, creating severe fragmentation across the automotive industry. The introduction of the ISO 14229 standard unified these diagnostic practices into a single, cohesive framework utilized across nearly all modern passenger cars and commercial vehicles.
+
+From an architectural perspective, \gls{UDS} operates at the Session (Layer 5) and Application (Layer 7) layers of the Open Systems Interconnection (OSI) reference model \cite{csselectronics_uds_protocol}. A fundamental strength of \gls{UDS} is its transport-layer independence; the core protocol defines diagnostic services and message formats without dictating the underlying physical medium. Consequently, \gls{UDS} can be natively deployed over various network topologies, including traditional \gls{CAN} buses, \gls{CAN-FD}, Automotive Ethernet (DoIP)\cite{iso_14229_1_2020}.
+
+The ISO 14229 standard is organized into multiple discrete parts to segregate core application logic from network-specific implementations:
+\begin{itemize}
+    \item \textbf{ISO 14229-1 (Application Layer):} Defines the abstract logic, timing parameters, and structure of individual diagnostic requests and responses, independent of the underlying network hardware \cite{iso_14229_1_2020}.
+    \item \textbf{ISO 14229-2 (Session Layer Services):} Specifies the session management rules, core timing requirements, and parameter definitions that govern the execution of diagnostic sequences.
+    \item \textbf{ISO 14229-3 (UDS on CAN):} Tailors the application layer definitions specifically for \gls{CAN} networks, mapping \gls{UDS} requirements to the physical and data link behaviors of the \gls{CAN} bus.
+\end{itemize}
+
+While \gls{UDS} handles application-level diagnostic commands, a significant engineering challenge arises when transmitting large payloads—such as fault memory dumps or ECU firmware images—over standard \gls{CAN} fieldbuses, which restrict the data payload to 8 bytes per frame. To bridge this gap, \gls{UDS} implementation on \gls{CAN} relies on the ISO 15765-2 transport protocol, commonly referred to as ISO-TP \cite{medium_uds_isotp_relationship}. ISO-TP manages the fragmentation, packetization, flow control, and reassembly of diagnostic messages, allowing payloads up to 4095 bytes to be seamlessly transferred across multiple sequential \gls{CAN} frames.
 \section{Client-Server Diagnostic Model}
 \section{Key UDS Services and Request/Response Formats}
 \section{Diagnostic Session Control}

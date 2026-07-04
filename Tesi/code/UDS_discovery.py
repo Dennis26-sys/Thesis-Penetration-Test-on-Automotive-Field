@@ -48,9 +48,7 @@ def verifica_coppia_diagnostica(client_id, server_id, interface="can0"):
     return False
 
 def run_discovery(min_value, max_value, interface="can0"):
-    """
-    Discovery using caringcaribou.
-    """
+    """Discovery using caringcaribou"""
     coppie_candidate = []
     discovered_diagnostics = []
     
