@@ -2,19 +2,144 @@
 
 \section{Overview of ISO 14229 Standard}\label{sec:uds_overview}
 
-The Unified Diagnostic Services (\gls{UDS}) protocol, standardized under ISO 14229 \cite{iso_14229_1_2020}, is the de facto global standard for automotive diagnostics, ECU firmware reprogramming, and fault management. Historically, vehicle manufacturers utilized proprietary diagnostic protocols, creating severe fragmentation across the automotive industry. The introduction of the ISO 14229 standard unified these diagnostic practices into a single, cohesive framework utilized across nearly all modern passenger cars and commercial vehicles.
+The Unified Diagnostic Services (\gls{UDS}) protocol, standardized under ISO 14229 \cite{iso14229_2020}, is the de facto worldwide standard for automotive diagnostics, ECU firmware reprogramming, and fault management. Vehicle manufacturers used proprietary diagnostic protocols in the past, causing severe fragmentation in the automotive industry.  Almost all modern passenger cars and commercial vehicles now use a single diagnostic system called ISO 14229, which brings together these diagnostic practices.
 
-From an architectural perspective, \gls{UDS} operates at the Session (Layer 5) and Application (Layer 7) layers of the Open Systems Interconnection (OSI) reference model \cite{csselectronics_uds_protocol}. A fundamental strength of \gls{UDS} is its transport-layer independence; the core protocol defines diagnostic services and message formats without dictating the underlying physical medium. Consequently, \gls{UDS} can be natively deployed over various network topologies, including traditional \gls{CAN} buses, \gls{CAN-FD}, Automotive Ethernet (DoIP)\cite{iso_14229_1_2020}.
+Architecturally, \gls{UDS} operates at Session (Layer 5) and Application (Layer 7) layers of the Open Systems Interconnection (OSI) reference model \cite{csselectronics_uds_protocol}. One of \gls{UDS}'s advantage is its transport-layer independence; the core protocol defines diagnostic services and message formats without specifying the underlying physical medium. Therefore, \gls{UDS} can be natively deployed on different network topologies such as traditional \gls{CAN} buses, \gls{CAN-FD}, Automotive Ethernet (DoIP).
 
-The ISO 14229 standard is organized into multiple discrete parts to segregate core application logic from network-specific implementations:
+The ISO 14229 standard is divided into several parts to separate core application logic from network specific implementations:
 \begin{itemize}
-    \item \textbf{ISO 14229-1 (Application Layer):} Defines the abstract logic, timing parameters, and structure of individual diagnostic requests and responses, independent of the underlying network hardware \cite{iso_14229_1_2020}.
-    \item \textbf{ISO 14229-2 (Session Layer Services):} Specifies the session management rules, core timing requirements, and parameter definitions that govern the execution of diagnostic sequences.
-    \item \textbf{ISO 14229-3 (UDS on CAN):} Tailors the application layer definitions specifically for \gls{CAN} networks, mapping \gls{UDS} requirements to the physical and data link behaviors of the \gls{CAN} bus.
+    \item \textbf{ISO 14229\textnormal{-}1 (Application Layer):} Defines the structure diagnostic requests and responses, the timing parameters and the abstract logic, independent of the underlying network hardware.
+    \item \textbf{ISO 14229\textnormal{-}2 (Session Layer Services):} Defines the rules for session management, core timing requirements, and parameter definitions that govern the execution of diagnostic sequences.
+    \item \textbf{ISO 14229\textnormal{-}3 (UDS on CAN):} Adapts the application layer definitions for \gls{CAN} networks by translating \gls{UDS} requirements into physical and data link behaviors of the \gls{CAN} bus.
 \end{itemize}
 
-While \gls{UDS} handles application-level diagnostic commands, a significant engineering challenge arises when transmitting large payloads—such as fault memory dumps or ECU firmware images—over standard \gls{CAN} fieldbuses, which restrict the data payload to 8 bytes per frame. To bridge this gap, \gls{UDS} implementation on \gls{CAN} relies on the ISO 15765-2 transport protocol, commonly referred to as ISO-TP \cite{medium_uds_isotp_relationship}. ISO-TP manages the fragmentation, packetization, flow control, and reassembly of diagnostic messages, allowing payloads up to 4095 bytes to be seamlessly transferred across multiple sequential \gls{CAN} frames.
-\section{Client-Server Diagnostic Model}
-\section{Key UDS Services and Request/Response Formats}
-\section{Diagnostic Session Control}
-\section{Security Access Mechanisms}
+\gls{UDS} handles application-level diagnostic commands, but a major engineering challenge is the transmission of large payloads, such as fault memory dumps or ECU firmware images over standard \gls{CAN} fieldbuses, which limits the data payload to 8 bytes per frame. To overcome this limitation, \gls{CAN}-based \gls{UDS} implementation uses the ISO 15765-2 transport protocol, commonly known as ISO-TP\cite{medium_uds_isotp_relationship}. ISO-TP manages the fragmentation, packetization, flow control, and reassembly of diagnostic messages, allowing payloads up to 4095 bytes to be transferred across multiple consecutive \gls{CAN} frames.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Client-Server Diagnostic Model}\label{sec:client_server_model}
+The \gls{UDS} protocol is based on a bidirectional client-server communication topology to perform diagnostic functions. In this framework the \textit{client}, referred to as tester, is represented by an external diagnostic tool or an onboard central gateway and starts diagnostic sequences by sending request messages. On the other hand, the onboard \glspl{ECU} are the \textit{servers} which process the incoming client requests and send back the corresponding response messages containing status data, routine results, or fault information \cite{csselectronics_uds_protocol}.
+
+\gls{UDS} defines two addressing modes at the network layer to manage the exchange of messages across shared vehicle networks. These modes determine the way servers interpret and process diagnostic traffic\cite{vector_elearning_2021}:
+
+\begin{itemize}
+    \item \textbf{Physical Addressing (Point-to-Point):} The client creates a dedicated point-to-point communication channel with a specific target \gls{ECU}. This mode uses a special network identifier that is unique to that server. Services that require isolated, deterministic interaction are required to have physical addressing. Examples of physical addressing are reading Diagnostic Trouble Codes (\gls{DTC}), flashing firmware images, initializing localised diagnostic routines.
+    \item \textbf{Functional Addressing (Broadcast):} The client can transmit a diagnostic request to several \glspl{ECU} simultaneously by using an identifier that is globally unique. This mode is mainly used in non-invasive, network-wide operations and supports onte-to-many communication. Typical applications include discovery of active nodes on the bus, query of global system states or sending of a synchronized request to transition all network nodes into a specific diagnostic session.
+\end{itemize}
+
+These client-server interactions are carried out according to standard timing parameters defined under the ISO 14229-2 specification to ensure network stability and avoid communication deadlocks. The most important timing variables include the tester present timeout ($P3_{max}$), which specifies the maximum allowed idle period before a server automatically reverts to the default session, and the server response time ($P2_{max}$), which defines the maximum time a server has to start the transmission of its response after receiving a client request. If a server requires additional processing time to perform a complex operation such as memory erasure or cryptographic verification, it must send a specific Negative Response Code (\texttt{0x78}, Request Correctly Received - Response Pending) to dynamically extend the $P2_{max}$ window and prevent a client-side timeout.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{UDS Request/Response Formats}\label{sec:uds_formats}
+
+Each \gls{UDS} diagnostic communication sequence is built on a deterministic byte-level structure that enables servers to correctly interpret client requests and deliver specific feedback. Diagnostic messages are based on a main \textit{Service Identifier} (\gls{SID}) that specifies the main operation to be performed on the target \gls{ECU}. The interaction of the protocol is classified into three major types of message formats: diagnostic requests, positive responses, and negative responses \cite{csselectronics_uds_protocol}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/UDS_message.png}
+    \caption[Structure of UDS Request and Response Formats]{Structure of UDS Request and Response Formats (Source: \cite{UDS_messages}).}
+    \label{fig:UDS_structure}
+\end{figure}
+
+The architecture of these message formats is shown in Figure \ref{fig:UDS_structure} and defined as follows:
+
+\begin{itemize}
+    \item \textbf{Diagnostic Request:} Sent by the client, the first byte contains the request SID (ranging from \texttt{0x00} to \texttt{0x3E}). Depending on the service, there is a \textit{Sub-function byte} that further defines the behaviour of the service (e.g. specific diagnostic sessions). Optional \textit{Data Parameters} are addresses, identifiers or configuration values.
+    \item \textbf{Positive Response:} The server sends a positive response frame when it validates and executes a request successfully. To indicate success, the server returns the original request \gls{SID} with a change in its value, by setting the 6th bit to 1. This corresponds to adding \texttt{0x40} to the request SID (e.g. a request SID of \texttt{0x10} yields a positive response SID of \texttt{0x50}). The remaining bytes repeat any relevant sub-function and contain the requested payload data.
+    \item \textbf{Negative Response:} If a request fails validation, violates access control or cannot be executed due to timing constraints, the server returns a standardized Negative Response. The first byte of this frame is always a fixed echo byte of \texttt{0x7F}. The second byte indicates the original request SID to identify the failing command and the third byte contains a specific Negative Response Code (\gls{NRC}) to define the exact root cause of the rejection \cite{iso14229_2020}.
+\end{itemize}
+
+The main functionalities of \gls{UDS} are divided into a number of defined services, each of which is assigned to a specific hexadecimal (\gls{SID}) that are used in the diagnostic request. The most commonly used services in modern automotive networks are summarized in Table~\ref{tab:uds_main_services}
+\begin{table}[htbp]
+    \centering
+    \caption[Main UDS Service Identifiers.]{Main UDS Service Identifiers and Functional Descriptions.}
+    \label{tab:uds_main_services}
+    \small
+    \renewcommand{\arraystretch}{1.3} % Spaziatura verticale ottimale
+    \begin{tabularx}{\textwidth}{|l|l|X|}
+        \hline
+        \textbf{Request SID} & \textbf{Service Name} & \textbf{Functional Description} \\ \hline
+        \texttt{0\textnormal{x}10} & \textit{DiagnosticSessionControl} & Changes the active software execution state in the server. \\
+        \texttt{0\textnormal{x}11} & \textit{ECUReset} & Forces the target controller to execute a hard or soft reset. \\
+        \texttt{0\textnormal{x}22} & \textit{ReadDataByIdentifier} & Extracts data record values stored under specific Data Identifiers. \\
+        \texttt{0\textnormal{x}27} & \textit{SecurityAccess} & Unlocks restricted high-privilege services via a Seed-Key handshake. \\
+        \texttt{0\textnormal{x}2E} & \textit{WriteDataByIdentifier} & Overwrites configuration or calibration values assigned to a DID. \\
+        \texttt{0\textnormal{x}34} & \textit{RequestDownload} & Initiates a data transfer from the client to the server's memory. \\
+        \texttt{0\textnormal{x}35} & \textit{RequestUpload} & Initiates a data transfer from the server's memory to the client. \\
+        \texttt{0\textnormal{x}36} & \textit{TransferData} & Executes the actual block-by-block data upload or download. \\
+        \texttt{0\textnormal{x}3E} & \textit{TesterPresent} & Transmits periodic keep-alive messages to prevent session timeouts. \\ \hline
+    \end{tabularx}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Diagnostic Session Control}\label{sec:diagnostic_session_control}
+The \textit{Diagnostic Session Control} service (\gls{SID} \texttt{0\textnormal{x}10}) controls an internal state machine that regulates the implementation of diagnostic functions within an \gls{ECU}. High-privilege diagnostic operations like memory overwriting or localized actuator testing have severe safety and security consequences during normal vehicle operations so \gls{UDS} isolates these capabilities into separate software execution environments called diagnostic sessions \cite{DiagnosticSessionControl}. 
+
+There are three main diagnostic sessions described in the ISO 14229\textnormal{-}1 standard, each identified by a specific sub-function byte within the \gls{SID} \texttt{0x10} request:
+
+\begin{itemize}
+    \item \textbf{Default Session (\texttt{0\textnormal{x}01}):} This is the default execution state of the \gls{ECU} when turned on. It only allows non-invasive, safe diagnostic operations, such as reading standard vehicle telemetry (Data Identifier) or retrieving simple \glspl{DTC}. This session disables any service that could change the \gls{ECU}'s firmware configuration or impair active driving control functions.
+    \item \textbf{Programming Session (\texttt{0\textnormal{x}02}):} This is a heavily restricted session used for memory flashing operations, bootloader interactions, software updates and security access. Normally moving to this state causes the \gls{ECU} to suspend normal application execution and switch to a dedicated bootloader mode where the client can modify non-volatile memory sectors.
+    \item \textbf{Extended Diagnostic Session (\texttt{0\textnormal{x}03}):} This state allows advanced engineering and adjustment functions. It provides access to low-level hardware routines, internal configuration changes, sensor calibrations, and high-privilege diagnostic routines which are not available in the baseline default state.
+\end{itemize}
+
+The security logic strictly controls the life-cycle and transitions of such sessions. An \gls{ECU} can always move from the Default Session to another session when requested but these privileged states requires have to be continuously reinforced by the client.
+
+If a session different from the default remains idle for a period of time longer than the timeout parameter $S3_{server}$ (normally set to 5000 milliseconds), according to the ISO 14229-2 timing specification the server will execute a fallback sequence automatically and switch to the Default Session. To suppress this automatic timeout and preserve the privileged software state during idle testing intervals, the client must periodically transmit a specialized keep-alive frame known as the \textit{TesterPresent} service (SID \texttt{0x3E}).
+
+In Appendix \ref{uds_replay_attack} the function \texttt{send\_tester\_present} (lines 17--32) shows how after the request for programming session a periodic message is needed to keep the session active in order to proceed in using the service 0x27 (Security Access)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Security Access Mechanisms}\label{sec:security_access}
+\textit{Security Access} (\gls{SID} 0\textnormal{x}27) is a cryptographic handshake mechanism within the UDS protocol designed to prevent unauthorized access to safety-critical functionalities. While switching to a non-default session gives you access to advanced engineering diagnostics, the most sensitive operations such as downloading custom firmware require the client to successfully authenticate to the internal security subsystem of the target server.
+
+The baseline authentication process, controlled by \gls{SID} 0\textnormal{x}27, employs a structured \textit{Seed-Key} challenge-response protocol performed in two consecutive steps \cite{Security_access_mechanism}:
+
+\begin{enumerate}
+    \item \textbf{Seed Request:} The client sends a diagnostic request with SID \texttt{0\textnormal{x}27} followed by an odd sub-function byte (e.g., \texttt{0\textnormal{x}01} or \texttt{0\textnormal{x}03}) indicating the desired security level. The target \gls{ECU} processes the request and returns a pseudo-random bitstream known as the \textit{Seed}.
+    \item \textbf{Key Submission:} The client takes the seed value and inputs it into a manufacturer-specific mathematical algorithm ($\mathcal{F}_{key}$) which returns a unique cryptographic response. The client then sends this computed \textit{Key} back to the server using a second request frame with an even sub-function byte incremented by one (i.e. the request sub-function value plus one, such as \texttt{0\textnormal{x}02} or \texttt{0\textnormal{x}04}).
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/SA_seed_key.png}
+    \caption[Security Access Mechanism]{Security Access Mechanism (Source: \cite{Security_access_mechanism}).}
+    \label{fig:security_access_mechanism}
+\end{figure}
+
+As illustrated in Figure~\ref{fig:security_access_mechanism}, the server independently executes the same algorithm ($\mathcal{F}_{key}$) with its internally produced seed and compares its local output with the key submitted by the client. If both cryptographic tokens match, the server gives the client the requested security level privilege, returning a positive response frame. If validation fails, the server responds with a Negative Response and the specific \gls{NRC} such as \texttt{0\textnormal{x}35} (\textit{Invalid Key}) or \gls{NRC} \texttt{0\textnormal{x}36} (\textit{Exceeded Number Of Attempts}), which instantly triggers an anti brute-force lockout timer to prevent authorization requests for a time period.
+
+The architectural design of the standard \gls{UDS} Seed-Key mechanism, although widely deployed in the industry, exhibits fundamental weaknesses when analysed with modern security engineering paradigms. Early implementations lack mutual authentication, cryptographic nonces, or dynamic timestamps, thus the handshake is inherently vulnerable to \textit{Replay Attacks} and \textit{Cryptographic Key Recovery} in the event of an adversary compromising the underlying transport medium. 
+The security resilience of this protocol is entirely dependent on the mathematical complexity and implementation choices of the proprietary algorithm ($\mathcal{F}_{key}$). In automotive engineering practice, vehicle manufacturers have adopted various cryptographic and pseudo-cryptographic implementations to perform this validation, which can be classified into four evolution tiers.
+%%%%%%%%
+
+\subsection{Legacy Obfuscation and Linear Functions}
+Historically used due to strict ECU computational and memory constraints, this tier relies on simple bit-shifting and XOR operations.
+\begin{itemize}
+    \item \textbf{Linear Feedback Shift Registers (LFSR):} Historically utilized due to strict ECU computational and memory constraints, these algorithms generate pseudo-random sequences by shifting bits through a register and feeding back a linear combination of its states (the carry bit) via XOR operations. While this architecture triggers a massive explosion of internal states—achieving a maximal period of $2^n - 1$ states that mimics true randomness—it suffers from structural linearity.
+    \item \textbf{Salt Matrix Mapping:} A static obfuscation technique where the seed bytes are used as indices to extract coefficients from a pre-shared hardware matrix, which are then combined via basic arithmetic operations. The lack of dynamic execution routing makes these matrices highly susceptible to algebraic extraction attacks.
+\end{itemize}
+
+\subsection{Symmetric Block and Custom Ciphers}
+This tier introduces structural security properties by implementing robust cryptographic boundaries within symmetric infrastructures.
+\begin{itemize}
+    \item \textbf{Feistel Cipher Networks:} Custom implementations of Feistel structures utilize symmetric multi-round encryption blocks to encrypt the seed. By using local sub-keys derived from a master ECU key, they provide strong diffusion and confusion properties without requiring full-scale standard cryptographic libraries.
+    \item \textbf{Advanced Encryption Standard (AES-128 / AES-192):} Modern high-end \glspl{ECU} utilize hardware-accelerated AES engines to execute $\mathcal{F}_{key}$. The server generates a random seed, and the client must return the ciphertext encrypted with a symmetric pre-shared key. If implemented with proper hardware security modules (HSM), AES-128 provides robust protection against algorithmic recovery, though it remains vulnerable to replay attacks if the seed is reused or predictable.
+\end{itemize}
+
+\subsection{Custom Virtualization and One-Way Hashing}
+Advanced modern implementations focus on hindering reverse engineering and ensuring mathematical irreversibility.
+\begin{itemize}
+    \item \textbf{SA2 Virtual Machine Environment:} A highly sophisticated obfuscation architecture where the cryptographic logic is not compiled into native machine code. Instead, $\mathcal{F}_{key}$ is written in a proprietary bytecode executed by a lightweight virtual machine runtime embedded within the ECU firmware, significantly hindering static reverse engineering and automated decompilation.
+    \item \textbf{Automotive Hashing Dictionaries (SHA-256):} Implementations that process the seed alongside a static secret salt through a cryptographic hash function like SHA-256. The fixed-length output is then truncated to match the expected UDS key length. This approach guarantees pre-image resistance, preventing an attacker from deducing the secret salt from the captured network data.
+\end{itemize}
+
+\subsection{Asymmetric and Public-Key Cryptography}
+The highest tier of modern automotive security bypasses the risks associated with shared secrets by utilizing asymmetric mathematical frameworks.
+\begin{itemize}
+    \item \textbf{PSA Bokslag (Asymmetric Moduli):} A specialized automotive implementation based on custom modular exponentiation and asymmetric frameworks. It segregates the verification key from the generation logic, preventing a total system compromise if a single ECU firmware is dumped.
+    \item \textbf{Rivest-Shamir-Adleman (RSA) and Elliptic Curve Cryptography (ECC):} The pinnacle of modern automotive authentication. Instead of a shared secret, the client signs the ECU-generated seed using its private key, and the server verifies the digital signature using a stored public key or root certificate, solving the key-management distribution crisis across global supply chains.
+\end{itemize}
+
+\vspace{1em} % Adds a clean separation before the concluding paragraph
+%%%%%%%%%%
+The architectural design of the standard UDS Seed-Key mechanism, although widely deployed in the industry, exhibits critical structural weaknesses when analyzed with modern security engineering paradigms. Early implementations lack mutual authentication, cryptographic nonces or dynamic timestamps, and thus the handshake is inherently vulnerable to Replay Attacks and Cryptographic Key Recovery in the event of an adversary compromising the underlying transport medium.

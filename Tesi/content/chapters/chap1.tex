@@ -4,13 +4,20 @@
 
 For several decades the design of vehicles was mainly focused on providing a reliable mechanical infrastructure that would be both secure and economical. However with the advancement of embedded technology the paradigm shifted toward providing software-driven platforms that provide services to the user to enhance the comfort of the transportation.
 
-To support this digital transition, the underlying Electrical and Electronic (\gls{EE}) architecture had to evolve through three main topological models\cite{srmtech_vehicle_architecture_2025}:
+To support this digital transition, the underlying Electrical and Electronic (\gls{EE}) architecture had to evolve through three main topological models\cite{srmtech_vehicle_architecture_2025}, shown in image \ref{fig:automotive_domains}:
 
 \begin{enumerate}
     \item \textbf{Distributed architecture (The legacy model):} In early electronic systems, every new feature—such as anti-lock braking (ABS) or airbag deployment required a dedicated Electronic Control Unit (\gls{ECU}). These units were in a closed network state and would not interact with external environments.
     \item \textbf{Domain control architecture (The current standard):} In this division the architecture is organised into domains according to functionality. Typically, these domains include Powertrain, Chassis, Body, ADAS, and Infotainment.
     \item \textbf{Zonal Architecture (The Next-Generation Paradigm):} The latest evolutionary step organises the vehicle's network based on physical location (e.g., front, rear, left, right) rather than logical function. Localised Zonal Control Unit collect data from nearby components and stream it to a central ECU, drastically reducing the amount of wiring necessary and allowing the use of strategic high speed wiring.
 \end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{images/automotive_domain.png}
+    \caption[Comparison of Automotive models]{Comparison of Automotive models (Source:\cite{architecture_domain_comparison})}
+    \label{fig:automotive_domains}
+\end{figure}
 
 
 \subsection{Functional Domains and Network Requirements}\label{subsec:network_requirements}
@@ -44,7 +51,13 @@ Despite the rapid deployment of high-bandwidth solutions such as Automotive Ethe
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{CAN Communication Protocol}\label{sec:can_protocol}
-The Controller Area Network is a multi-master, asynchronous serial bus protocol developed by Robert Bosch GmbH in the 1980s to replace complex point-to-point wiring in vehicles. It uses a differential two-wire bus consisting of \gls{CAN} High (CAN\_H) and \gls{CAN} Low (CAN\_L) lines. Communication is based on two logical states that describe the difference in voltage levels: \textit{dominant} (logical 0) and \textit{recessive} (logical 1). Because a dominant state actively forces the bus voltage difference, it always overwrites a recessive state, enabling robust collision resolution without data corruption.
+The Controller Area Network is a multi-master, asynchronous serial bus protocol developed by Robert Bosch GmbH in the 1980s to replace complex point-to-point wiring in vehicles. It uses a differential two-wire bus consisting of \gls{CAN} High (CAN\_H) and \gls{CAN} Low (CAN\_L) lines as shown in figure \ref{fig:can_network}. Communication is based on two logical states that describe the difference in voltage levels: \textit{dominant} (logical 0) and \textit{recessive} (logical 1). Because a dominant state actively forces the bus voltage difference, it always overwrites a recessive state, enabling robust collision resolution without data corruption.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.75\textwidth]{images/can_network.png}
+    \caption[Structure of a CAN network]{Structure of a CAN network (Source:\cite{vector_elearning_2021})}
+    \label{fig:can_network}
+\end{figure}
 
 \subsection{CAN Data Frame Structure}
 Specific frame types are used to transfer data across the \gls{CAN} network, the most notable frame type being the standard Data Frame. A standard \gls{CAN} Data Frame is divided into various functional fields, each serving a specific role such as synchronization, identification, data payload transmission and error checking.
@@ -52,11 +65,11 @@ Specific frame types are used to transfer data across the \gls{CAN} network, the
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.95\textwidth]{images/can frame.png}
-    \caption{Structure of a Standard CAN 2.0A Data Frame. (Source:\cite{vector_can_framing_2021})}
+    \caption[Structure of a Standard CAN 2.0A Data Frame]{Structure of a Standard CAN 2.0A Data Frame (Source:\cite{vector_elearning_2021})}
     \label{fig:can_frame_structure}
 \end{figure}
 
-As illustrated in Figure~\ref{fig:can_frame_structure}, the standard Data Frame consists of the following sequential fields:
+As illustrated in Figure \ref{fig:can_frame_structure}, the standard Data Frame consists of the following sequential fields:
 
 \begin{itemize}
     \item \textbf{Start of Frame (SOF):} A single dominant bit (0) that synchronizes the clocks of all nodes on the bus after a period of idle network activity.
@@ -77,5 +90,12 @@ When the \gls{CAN} protocol was standardized, automotive networks were physicall
     \item \textbf{Lack of Authentication and Integrity (No Source Verification):} \gls{CAN} frames do not contain any origin identifiers or cryptographic signatures. Messages are broadcast to the entire bus, and receiving nodes filter them based solely on the Message ID, which identifies the data type (e.g., engine speed) rather than the transmitter. As a result, any node connected to the bus can inject frames with identical IDs and impersonate a legitimate entity. The 15-bit CRC field only protects against random hardware bit-errors caused by electromagnetic interference but provides no protection against intentional malicious modifications.
     \item \textbf{Lack of Confidentiality (Open Broadcast Nature):} Because \gls{CAN} uses a shared, broadcast medium, each node on the bus can read every transmitted frame. There is no native encryption layer in the data link and physical layers. An attacker with physical or logical access to the bus can perform passive eavesdropping, capturing all network traffic, and reverse engineering proprietary vehicle telemetry.
     \item \textbf{Vulnerability to Denial of Service (Arbitration Exploitation):} The deterministic priority mechanism, while beneficial for safety-critical real-time scheduling, introduces a major vulnerability. An attacker can continuously flood the bus with dominant bits or max priority frames (ID \texttt{0x000}). The non-destructive bitwise arbitration always blocks legitimate lower-priority traffic, leading to a complete network Denial of Service (DoS).
-    \item \textbf{Susceptibility to Cyber-Physical Attacks (Error Handling Exploitation):} The built-in fault-confinement mechanism of \gls{CAN} can be exploited. A node detecting too many transmission errors will automatically switch from an \textit{Error Active} state to an \textit{Error Passive} state, and eventually into a \textit{Bus-Off} state, physically disconnecting it from the network. Attackers can exploit this by injecting dominant bits at the exact transmission time of a target \gls{ECU}, forcing it into a permanent Bus-Off state, detaching it from the network.
+    \item \textbf{Susceptibility to Cyber-Physical Attacks (Error Handling Exploitation):} The built-in fault-confinement mechanism of \gls{CAN} can be exploited. A node detecting too many transmission errors will automatically switch from an \textit{Error Active} state to an \textit{Error Passive} state, and eventually into a \textit{Bus-Off} state, physically disconnecting it from the network. Attackers can exploit this by injecting dominant bits at the exact transmission time of a target \gls{ECU}, forcing it into a permanent Bus-Off state, detaching it from the network as seen in image \ref{fig:can_error_tracking}.
 \end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.65\textwidth]{images/can_error_handling.png}
+    \caption[Error tracking in CAN network]{Error tracking in CAN network (Source:\cite{vector_elearning_2021})}
+    \label{fig:can_error_tracking}
+\end{figure}
