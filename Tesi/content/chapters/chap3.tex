@@ -1,5 +1,98 @@
 \chapter{Threat and Vulnerability Analysis}
-\section{Automotive Threat Analysis}
-\section{STRIDE methodology}
+\section{Automotive Threat Analysis}\label{sec:automotive_threat_analysis}
+
+Modern vehicles are rapidly evolving into being Connected and Autonomous Vehicles (CAVs), which has dramatically increased their cyber-physical attack surface. New automotive architectures are not closed systems, but rather complex, distributed networks where safety-critical components interact and communicate with infotainment systems, external vehicle-to-everything (\gls{V2X}) interfaces, and cloud-based \gls{OEM} infrastructures.
+
+From the cyber-security point of view this interconnection brings severe risks.
+A successful intrusion no longer concerns data privacy but directly endangers human life by potentially overriding safety-critical cyber-physical functions (e.g., braking, steering, or powertrain management). For the development of resilient mitigation techniques like Dedicated Security Elements (DSE), a systematic analysis of automotive specific threats, vulnerabilities and potential attack vectors is necessary.
+In this section it is provided a taxonomy of the main threats that modern automotive networks are exposed to, with a special focus on the vulnerabilities of \glspl{ECU}, internal communication buses, positioning systems and external telemetry.
+
+% --- SUBSECTION: ECU ATTACKS ---
+\subsection{Vulnerabilities and Attacks on ECUs}
+Electronic Control Units (\glspl{ECU}) are embedded microcontrollers dedicated to the management of specific vehicular sub-systems, ranging from low-priority body comfort modules to high-priority Powertrain and \gls{ADAS}. While built for high reliability and real-time operation, \glspl{ECU} have certain structural weaknesses:
+
+\begin{itemize}
+    \item \textbf{Firmware Tampering and Reverse Engineering:} Attackers attempt to reverse engineer the ECU firmware in an effort to reconstruct internal logic, extract proprietary algorithms (e.g. Seed-Key routines) or find zero-day vulnerabilities \cite{vandenherrewegen2018beneath}.
+    This is typically done by obtaining memory dumps through physical debugging interfaces like JTAG or Nexus, or by exploiting unprotected bootloaders.
+    \item \textbf{Malicious Reflashing and Ransomware:} If the cryptographic signature verification in the bootloader is not or poorly implemented, an attacker can use standard diagnostic sessions to overwrite the \gls{ECU} firmware. This allows the execution of arbitrary code, persistent backdoors or ransomware attacks that encrypt configuration files, resulting in a permanent Denial of Service (DoS) of the module\cite{Firmwareattack}.
+
+    \item \textbf{Sensor Spoofing and Manipulation:} Control loops in \glspl{ECU} are executed using analogue and digital sensor inputs. By altering the physical environment like injecting false ultrasonic, radar or camera data, the \gls{ECU} is forced into making erroneous operational decisions, leading to unexpected vehicle behaviour \cite{petit2015remote,radar_spoofing2026}.
+    
+    \item \textbf{Over-The-Air (OTA) Interception:} Having wireless interfaces for remotely updating firmware allows for man-in-the-middle (MitM) attacks. If the OTA orchestration channel does not have strong mutual authentication and end-to-end encryption, adversaries may be able to eavesdrop, tamper, or revert firmware payloads \cite{OTArollback}.
+    
+    \item \textbf{Node Isolation and Bus-Off Attacks:} These attacks exploit the inherent fault confinement mechanism specified by the \gls{CAN} standard. The health of each \gls{ECU} is monitored using 2 internal counters which are Transmit Error Counter (\gls{TEC}) and Receive Error Counter (\gls{REC}). With precise bit-flipping or target fuzzing synchronised at microsecond level, an attacker can deliberately force the \gls{TEC} of the target \gls{ECU} over the threshold of 255. This forces the victim \gls{ECU} into a permanent “Bus-Off” state, isolating it from the network entirely \cite{BusOff}.
+A Bus-Off attack can be successfully performed with dedicated hardware for real-time bit manipulation, like Canari, SPIRE or microcontrollers customised on \gls{FPGA}.
+
+\end{itemize}
+
+Compromised \glspl{ECU} rarely constitute the final objective of an attacker. Instead, they serve as initial entry points for \textit{lateral movement}. An attacker could leverage a highly vulnerable infotainment \gls{ECU} on a low-priority Comfort \gls{CAN} bus, compromise it and use the Central Gateway \gls{ECU} to access the high-priority Powertrain \gls{CAN} bus to escalate privileges and take control of safety-critical modules.
+
+% --- SUBSECTION: CAN BUS COMPROMISE ---
+\subsection{Compromission and Core Vulnerabilities of the CAN Bus}
+CAN bus is still the backbone of internal automotive communications due to its low cost, deterministic scheduling and robust error handling. However, the protocol was natively designed for closed environments and misses fundamental cybersecurity properties exploited by the following attack typologies:
+
+\begin{itemize}
+    \item \textbf{Sniffing and Eavesdropping:} Because \gls{CAN} is a broadcast bus, each node in the bus receives every frame transmitted. Messages are sent in plaintext so any attacker with physical or logical access to the bus can intercept the traffic. This data can be used to reverse engineer the network matrix (\gls{DBC} files), monitor telemetry or analyse driver behaviour for external exploitation \cite{buscemi2023survey}.
+    
+    \item \textbf{Replay Attacks:}  In the absence of monotonic counters, timestamps or cryptographic freshness identifiers, an attacker can passively listen to valid \gls{CAN} frames and replay them at a later time. Examples include capturing door-unlock commands to bypass immobilizers, injecting high-speed telemetry when the vehicle is stationary or forcing an \gls{ECU} to accept a legacy, vulnerable firmware version (downgrade attack) \cite{miller2015remote}.
+    
+    \item \textbf{Fuzzing and Code Injection:} Attackers can inject a large volume of randomised or semi-structured CAN packets into the bus. This technique is used to find unhandled exceptions in the \gls{ECU}'s communication stack, which can cause unexpected software crashes, temporary Denial of Service, or unauthorised transitions between diagnostic states.
+    
+    \item \textbf{Data Integrity and Masquerading Faults:} The \gls{CAN} protocol does not authenticate the sender of a message. Any node can masquerade as any another by sending frames with a specific \gls{SID}. In multi-packet transmissions (such as \gls{UDS} ISO-TP segmentation), malicious payload can be injected mid-stream,  payload parameters can be modified, or frame structures can be corrupted to invalidate legitimate data buffers.
+\end{itemize}
+
+% --- SUBSECTION: DoIP SOME/IP ---
+\subsection{IP attacks: DoIP and SOME/IP}
+
+% --- CONTINUAZIONE DELLA SOTTOSEZIONE AUTOMOTIVE ETHERNET (DoIP e SOME/IP) ---
+When analysing the automotive diagnostic ecosystem over IP, attacks targeting the \gls{DoIP} layer can be formalized into three critical threat categories:
+
+\begin{itemize}
+    \item \textbf{Authentication Avoidance via Session Hijacking:} \gls{UDS} provides logical security boundaries like Service 0x27 (Security Access), but the underlying \gls{DoIP} layer does not support transport-level authentication natively and is thus completely dependent on application-layer components to provide this feature. As \gls{DoIP} supports multiple parallel \gls{TCP} sessions at the same time, \gls{OEM} configurations that are not implemented well can result in cross session vulnerability states. In particular, if a single valid diagnostic session completes the \gls{UDS} Security Access handshake successfully, the unlocked security state may be inadvertently applied globally to all concurrent unauthenticated \gls{TCP} sessions. This allows an external actor to execute limited diagnostic commands without the needed cryptographic authentication algorithm \cite{DoIPAttack}.
+    
+    \item \textbf{Man-in-the-Middle (MitM) via Vehicle Announcement Spoofing:} During the initial edge-discovery phase, vehicles periodically broadcast \gls{DoIP} \textit{Vehicle Announcement} messages to identify themselves to external diagnostic testers. An attacker can inject counterfeit announcement packets containing a malicious IP address. If the diagnostic tool selects the spoofed announcement, it establishes the communication channel directly with the attacker's infrastructure instead of the legitimate vehicle, enabling bidirectional data interception and command injection.
+    
+    \item \textbf{Diagnostic Denial of Service (DoS):} This threat targets the availability of the diagnostic infrastructure. By injecting falsified status parameters during the handshake or testing execution phase (e.g., claiming the vehicle is "Ready" when it is not, or vice versa), the attacker desynchronizes the state machine of the diagnostic tester, triggering unhandled timeouts and inducing an immediate crash of the active session.
+\end{itemize}
+
+Beyond \gls{DoIP}, high-performance intra-vehicle communication relies extensively on the Scalable Service-Oriented MiddlewarE over IP (\gls{SOME/IP}) protocol. Since native \gls{SOME/IP} specification lacks built-in mechanisms for data integrity, payload encryption, and source origin authentication, it is structurally vulnerable to standard network exploitation vectors, including:
+\begin{itemize}
+    \item \textbf{Insert Attacks:} The unauthorized injection of arbitrary, attacker-crafted \gls{SOME/IP} serialization packets to invoke remote procedures or publish fake serialized events.
+    \item \textbf{Replay Attacks:} The capturing of valid \gls{SOME/IP} message blocks (e.g., specific telemetry or initialization triggers) to retransmit them during a different operational cycle.
+    \item \textbf{Eavesdropping:} The passive sniffing of plaintext middleware traffic over unencrypted Automotive Ethernet links, leading to the exposure of internal system states.
+    \item \textbf{Message Modification and Dropping:} Active manipulation of real-time payloads or intentional destruction of serialization packets (packet dropping) to break the data consistency of service-oriented architectures.
+\end{itemize}
+
+% --- SOTTOSEZIONE: GPS ---
+\subsection{GNSS and GPS Manipulation: Jamming and Spoofing Mechanics}
+The Global Positioning System (GPS), operating as part of the broader Global Navigation Satellite System (GNSS), is the primary source for spatial-temporal localization in autonomous and connected vehicles. The computation of coordinates (latitude, longitude, and altitude) relies on the passive reception of radio signals from multiple satellites, using the mathematical principle of trilateration based on precise satellite ephemeris and atomic clock timestamps. Due to the extremely low power of GNSS signals when reaching the Earth's surface, these systems are highly vulnerable to two main typologies of interference:
+
+\begin{itemize}
+    \item \textbf{GPS Jamming:} The intentional transmission of high-power RF noise on the specific GNSS operational frequency bands (e.g., L1/L2). The resulting low Signal-to-Interference-plus-Noise Ratio (SINR) prevents the vehicle's GNSS receiver from isolating and decoding the legitimate satellite signals, leading to a complete loss of positioning capability and navigation DoS.
+    
+    \item \textbf{GPS Spoofing:} A highly sophisticated attack where a malicious transmitter broadcasts counterfeit GNSS signals with slightly higher power than the legitimate ones, effectively hijacking the receiver's tracking loops. GPS spoofing can be classified into three distinct architectural complexity levels:
+    \begin{itemize}
+        \item \textit{Basic-Level Spoofing:} Characterized by the generation of unsynchronized, randomized GNSS signal patterns. These are easily detected and isolated by modern automotive receivers since the injected telemetry structures violate basic protocol conformance rules.
+        \item \textit{Intermediate-Level Spoofing:} Involves the transmission of structurally realistic GNSS coordinate sets. While capable of deceiving standard receivers into displaying false spatial coordinates, they introduce sharp, non-contiguous transitions (spatial jumps) relative to historical telemetry, making them identifiable through baseline plausibility checks.
+        \item \textit{Advanced-Level Spoofing (Meaconing):} The most critical variation, which involves recording authentic GNSS signals and rebroadcasting them with incrementally calculated mathematical propagation delays. This gradual spatial-temporal drift smoothly misleads the vehicle's autonomous routing logic into an incorrect trajectory without triggering sudden telemetry anomalies.
+    \end{itemize}
+\end{itemize}
+
+% --- SOTTOSEZIONE: V2X ---
+\subsection{Vehicle-to-Everything (V2X) Cooperative Attack Surface}
+Vehicle-to-Everything (V2X) technologies—encompassing Vehicle-to-Vehicle (V2V) and Vehicle-to-Infrastructure (V2I) interfaces via DSRC or C-V2X protocols—remove the necessity for an attacker to maintain physical proximity to the target. This turns cooperative driving interfaces (designed to exchange real-time traffic, obstacle, and intersection precedence data) into distributed remote attack vectors. 
+
+While these threats borrow fundamental concepts from standard wireless network security, their translation into the automotive domain introduces specific, safety-critical consequences:
+\begin{itemize}
+    \item \textbf{Eavesdropping and Location Tracking:} Passive interception of unencrypted V2X cooperative awareness messages allows continuous, long-range tracking of a vehicle's unique telemetry signature, violating user privacy.
+    \item \textbf{Data Injection and Message Modification:} Injecting false Cooperative Awareness Messages (CAM) or Decentralized Environmental Notification Messages (DENM) allows attackers to forge non-existent road hazards, trigger abrupt autonomous emergency braking maneuvers, or force hazardous lane changes.
+    \item \textbf{Sybil Attacks:} The most devastating V2X-specific threat, where a single malicious node simultaneously generates and orchestrates a massive quantity of pseudo-legitimate virtual identities on the cooperative network. By simulating a dense fleet of non-existent vehicles, the attacker can fabricate widespread artificial traffic congestion or corrupt cooperative consensus algorithms, forcing autonomous routing frameworks to recalculate paths or yield precedence maliciously.
+\end{itemize}
+
+
+\section{Regulations and methodologies}
+\subsection{R155 regulation}
+\subsection{TARA methodology}
+\subsection{STRIDE methodology}
 \section{UDS Protocol Vulnerabilities}
 \section{Attack Vectors on the Diagnostic Bus}

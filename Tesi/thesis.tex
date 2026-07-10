@@ -31,6 +31,7 @@
 \addbibresource{bibliography.bib}
 % to load the glossaries, not needed if using bib2gls
 \input{glossaries.tex}
+\usepackage{glossary-mcols}
 \makeglossaries
 
 \pagestyle{fancy}
@@ -41,7 +42,6 @@
 \renewcommand{\chaptermark}[1]{\markboth{#1}{}}
 \renewcommand{\thepage}{\Roman{page}}
 \setlength{\headheight}{14pt}
-
 \begin{document}
 
 \input{common/config}
@@ -93,7 +93,7 @@
 % here we are printing only abbreviations
 % printunsrtglossary if using record, otherwise printglossary is ok
 \paginavuota
-\printunsrtglossary[style=long,title=Acronyms,type=\acronymtype]
+\printunsrtglossary[style=mcolindex,title={Acronyms},type=\acronymtype]
 % also list of symbols here if needed
 \input{common/post_summary_config.tex}
 %\mainmatter
