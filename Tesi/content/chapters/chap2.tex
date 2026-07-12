@@ -14,7 +14,9 @@ The ISO 14229 standard is divided into several parts to separate core applicatio
 \end{itemize}
 
 \gls{UDS} handles application-level diagnostic commands, but a major engineering challenge is the transmission of large payloads, such as fault memory dumps or ECU firmware images over standard \gls{CAN} fieldbuses, which limits the data payload to 8 bytes per frame. To overcome this limitation, \gls{CAN}-based \gls{UDS} implementation uses the ISO 15765-2 transport protocol, commonly known as ISO-TP\cite{medium_uds_isotp_relationship}. ISO-TP manages the fragmentation, packetization, flow control, and reassembly of diagnostic messages, allowing payloads up to 4095 bytes to be transferred across multiple consecutive \gls{CAN} frames.
-
+\subsection{UDS on IP: DoIP and SOME/IP Transport Frameworks}
+?????????
+?????????
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Client-Server Diagnostic Model}\label{sec:client_server_model}
 The \gls{UDS} protocol is based on a bidirectional client-server communication topology to perform diagnostic functions. In this framework the \textit{client}, referred to as tester, is represented by an external diagnostic tool or an onboard central gateway and starts diagnostic sequences by sending request messages. On the other hand, the onboard \glspl{ECU} are the \textit{servers} which process the incoming client requests and send back the corresponding response messages containing status data, routine results, or fault information \cite{csselectronics_uds_protocol}.
@@ -51,8 +53,6 @@ The architecture of these message formats is shown in Figure \ref{fig:UDS_struct
 The main functionalities of \gls{UDS} are divided into a number of defined services, each of which is assigned to a specific hexadecimal (\gls{SID}) that are used in the diagnostic request. The most commonly used services in modern automotive networks are summarized in Table~\ref{tab:uds_main_services}
 \begin{table}[htbp]
     \centering
-    \caption[Main UDS Service Identifiers.]{Main UDS Service Identifiers and Functional Descriptions.}
-    \label{tab:uds_main_services}
     \small
     \renewcommand{\arraystretch}{1.3} % Spaziatura verticale ottimale
     \begin{tabularx}{\textwidth}{|l|l|X|}
@@ -68,6 +68,8 @@ The main functionalities of \gls{UDS} are divided into a number of defined servi
         \texttt{0\textnormal{x}36} & \textit{TransferData} & Executes the actual block-by-block data upload or download. \\
         \texttt{0\textnormal{x}3E} & \textit{TesterPresent} & Transmits periodic keep-alive messages to prevent session timeouts. \\ \hline
     \end{tabularx}
+\caption[Main UDS Service Identifiers.]{Main UDS Service Identifiers}
+\label{tab:uds_main_services}
 \end{table}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -140,5 +142,5 @@ The most important improvement in automotive diagnostic systems security is to e
 
 
 \vspace{1em} % Adds a clean separation before the concluding paragraph
-%%%%%%%%%%
+
 The architectural design of the standard UDS Seed-Key mechanism, although widely deployed in the industry, exhibits critical structural weaknesses when analysed with modern security engineering paradigms. Early implementations lack mutual authentication, cryptographic nonces or dynamic timestamps, and thus the handshake is inherently vulnerable to Replay Attacks and Cryptographic Key Recovery in the event of an adversary compromising the underlying transport medium.

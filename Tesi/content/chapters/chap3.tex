@@ -50,49 +50,118 @@ When analysing the automotive diagnostic ecosystem over IP, attacks targeting th
 \begin{itemize}
     \item \textbf{Authentication Avoidance via Session Hijacking:} \gls{UDS} provides logical security boundaries like Service 0x27 (Security Access), but the underlying \gls{DoIP} layer does not support transport-level authentication natively and is thus completely dependent on application-layer components to provide this feature. As \gls{DoIP} supports multiple parallel \gls{TCP} sessions at the same time, \gls{OEM} configurations that are not implemented well can result in cross session vulnerability states. In particular, if a single valid diagnostic session completes the \gls{UDS} Security Access handshake successfully, the unlocked security state may be inadvertently applied globally to all concurrent unauthenticated \gls{TCP} sessions. This allows an external actor to execute limited diagnostic commands without the needed cryptographic authentication algorithm \cite{DoIPAttack}.
     
-    \item \textbf{Man-in-the-Middle (MitM) via Vehicle Announcement Spoofing:} During the initial edge-discovery phase, vehicles periodically broadcast \gls{DoIP} \textit{Vehicle Announcement} messages to identify themselves to external diagnostic testers. An attacker can inject counterfeit announcement packets containing a malicious IP address. If the diagnostic tool selects the spoofed announcement, it establishes the communication channel directly with the attacker's infrastructure instead of the legitimate vehicle, enabling bidirectional data interception and command injection.
+    \item \textbf{Man-in-the-Middle (MitM) via Vehicle Announcement Spoofing:} In the first phase of the edge discovery, vehicles periodically broadcast \gls{DoIP} \textit{Vehicle Announcement} messages to identify themselves to diagnostic testers. An attacker can inject fake announcement packets with a malicious IP address. If the test chooses the spoofed announcement, the communication channel is established directly with the attacker's infrastructure rather than the legitimate vehicle, allowing data interception and command injection \cite{DoIPAttack}.
     
-    \item \textbf{Diagnostic Denial of Service (DoS):} This threat targets the availability of the diagnostic infrastructure. By injecting falsified status parameters during the handshake or testing execution phase (e.g., claiming the vehicle is "Ready" when it is not, or vice versa), the attacker desynchronizes the state machine of the diagnostic tester, triggering unhandled timeouts and inducing an immediate crash of the active session.
+    \item \textbf{Diagnostic Denial of Service (DoS):} This threat affects the availability of the diagnostic infrastructure. The attacker can desynchronise the state machine of the diagnostic tester by injecting false status parameters during the handshake or execution of the testing such as "Ready" status when in fact it is not or vice versa, which leads to unhandled timeouts and crash of active session.
 \end{itemize}
 
-Beyond \gls{DoIP}, high-performance intra-vehicle communication relies extensively on the Scalable Service-Oriented MiddlewarE over IP (\gls{SOME/IP}) protocol. Since native \gls{SOME/IP} specification lacks built-in mechanisms for data integrity, payload encryption, and source origin authentication, it is structurally vulnerable to standard network exploitation vectors, including:
+Apart from \gls{DoIP},  the Scalable Service-Oriented MiddlewarE over IP (\gls{SOME/IP}) protocol is also popularly used for high-performance intra-vehicle communication. Since native \gls{SOME/IP} specification lacks built-in mechanisms for data integrity, payload encryption, and source origin authentication, it is structurally vulnerable to standard network exploitation vectors, including:
 \begin{itemize}
-    \item \textbf{Insert Attacks:} The unauthorized injection of arbitrary, attacker-crafted \gls{SOME/IP} serialization packets to invoke remote procedures or publish fake serialized events.
-    \item \textbf{Replay Attacks:} The capturing of valid \gls{SOME/IP} message blocks (e.g., specific telemetry or initialization triggers) to retransmit them during a different operational cycle.
-    \item \textbf{Eavesdropping:} The passive sniffing of plaintext middleware traffic over unencrypted Automotive Ethernet links, leading to the exposure of internal system states.
-    \item \textbf{Message Modification and Dropping:} Active manipulation of real-time payloads or intentional destruction of serialization packets (packet dropping) to break the data consistency of service-oriented architectures.
+    \item \textbf{Insert Attacks:} The malicious injection of arbitrary \gls{SOME/IP} packets to invoke remote procedures or publish fake events.
+    \item \textbf{Replay Attacks:} Interception of valid \gls{SOME/IP} message blocks for retransmission during a different operational cycle.
+    \item \textbf{Eavesdropping:} Passive sniffing of plaintext middleware traffic over unencrypted Automotive Ethernet links, revealing internal system states.
+    \item \textbf{Message Modification and Dropping:} Active manipulating real-time payloads or intentionally destroying packets (packet dropping) to break the data consistency of service-oriented architectures.
 \end{itemize}
 
 % --- SOTTOSEZIONE: GPS ---
 \subsection{GNSS and GPS Manipulation: Jamming and Spoofing Mechanics}
-The Global Positioning System (GPS), operating as part of the broader Global Navigation Satellite System (GNSS), is the primary source for spatial-temporal localization in autonomous and connected vehicles. The computation of coordinates (latitude, longitude, and altitude) relies on the passive reception of radio signals from multiple satellites, using the mathematical principle of trilateration based on precise satellite ephemeris and atomic clock timestamps. Due to the extremely low power of GNSS signals when reaching the Earth's surface, these systems are highly vulnerable to two main typologies of interference:
+The Global Positioning System (GPS), as part of the overall Global Navigation Satellite System (\gls{GNSS}), is the main source for spatial-temporal localisation in autonomous and connected vehicles. The coordinates (latitude, longitude, and altitude) calculation is based on the passive reception of radio signals from a plurality of satellites, by means of the mathematical principle of trilateration using accurate satellite ephemeris and atomic clock timestamps. \gls{GNSS} signals received at the Earth’s surface are very weak, and these systems are very sensitive to two types of interference:
 
 \begin{itemize}
-    \item \textbf{GPS Jamming:} The intentional transmission of high-power RF noise on the specific GNSS operational frequency bands (e.g., L1/L2). The resulting low Signal-to-Interference-plus-Noise Ratio (SINR) prevents the vehicle's GNSS receiver from isolating and decoding the legitimate satellite signals, leading to a complete loss of positioning capability and navigation DoS.
+    \item \textbf{GPS Jamming:} The intentional emission of high power radio frequency noise on the designated \gls{GNSS} operational frequency bands. This leads to a low Signal-to-Noise Ratio (SNR) that prevents the vehicle's \gls{GNSS} receiver from isolating and decoding the legitimate satellite signals, leading to a complete loss of positioning capability and navigation \gls{DoS}.
     
-    \item \textbf{GPS Spoofing:} A highly sophisticated attack where a malicious transmitter broadcasts counterfeit GNSS signals with slightly higher power than the legitimate ones, effectively hijacking the receiver's tracking loops. GPS spoofing can be classified into three distinct architectural complexity levels:
+    \item \textbf{GPS Spoofing:} A sophisticated attack where a malicious transmitter broadcasts fake \gls{GNSS} signals at a slightly higher power than the real signals, thus taking over the receiver's tracking mechanisms. GPS spoofing can be classified into three levels of architectural complexity:
     \begin{itemize}
-        \item \textit{Basic-Level Spoofing:} Characterized by the generation of unsynchronized, randomized GNSS signal patterns. These are easily detected and isolated by modern automotive receivers since the injected telemetry structures violate basic protocol conformance rules.
-        \item \textit{Intermediate-Level Spoofing:} Involves the transmission of structurally realistic GNSS coordinate sets. While capable of deceiving standard receivers into displaying false spatial coordinates, they introduce sharp, non-contiguous transitions (spatial jumps) relative to historical telemetry, making them identifiable through baseline plausibility checks.
-        \item \textit{Advanced-Level Spoofing (Meaconing):} The most critical variation, which involves recording authentic GNSS signals and rebroadcasting them with incrementally calculated mathematical propagation delays. This gradual spatial-temporal drift smoothly misleads the vehicle's autonomous routing logic into an incorrect trajectory without triggering sudden telemetry anomalies.
+        \item \textit{Basic-Level Spoofing:} Defined as the generation of unsynchronised and randomized \gls{GNSS} signal patterns. Modern automotive receivers are adequately equipped to detect and isolate these as the injected telemetry structures violate fundamental protocol compliance standards.
+        \item \textit{Intermediate-Level Spoofing:} \gls{GNSS} coordinate sets are compliant with the standard structure. While capable of deceiving standard receivers into reporting wrong spatial coordinates, they usually present sharp, discontinuous transitions (spatial jumps) in comparison to historical telemetry, thus making them detectable with a baseline plausibility assessment.
+        \item \textit{Advanced-Level Spoofing (Meaconing):} The most advanced form, where the real \gls{GNSS} signals are recorded and rebroadcast with incrementally calculated mathematical propagation delays. This slow drift subtly leads the autonomous routing logic of the vehicle onto a wrong trajectory without triggering abrupt telemetry anomalies.
     \end{itemize}
 \end{itemize}
 
 % --- SOTTOSEZIONE: V2X ---
 \subsection{Vehicle-to-Everything (V2X) Cooperative Attack Surface}
-Vehicle-to-Everything (V2X) technologies—encompassing Vehicle-to-Vehicle (V2V) and Vehicle-to-Infrastructure (V2I) interfaces via DSRC or C-V2X protocols—remove the necessity for an attacker to maintain physical proximity to the target. This turns cooperative driving interfaces (designed to exchange real-time traffic, obstacle, and intersection precedence data) into distributed remote attack vectors. 
+Vehicle-to-Everything (\gls{V2X}) technologies, which include Vehicle-to-Vehicle (V2V) and Vehicle-to-Infrastructure (V2I) do not require the attacker to be physically close to the target. This turns cooperative driving interfaces that exchange real-time traffic, obstacle and intersection precedence information into distributed remote attack vectors. 
 
-While these threats borrow fundamental concepts from standard wireless network security, their translation into the automotive domain introduces specific, safety-critical consequences:
+Following the exhaustive taxonomy by Sedar et al. \cite{V2Xthreats}, the \gls{V2X} cybersecurity threats can be categorised based on the key security and privacy requirements they violate: \textit{Authentication}, \textit{Availability}, \textit{Confidentiality}, \textit{Integrity}, and \textit{Privacy}.
+
+According to this model, Table \ref{tab:v2x_threats} provides a full classification of \gls{V2X} security threats and their impact on automotive.
+\newpage
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Requirement} & \textbf{Specific Threat} \\
+\midrule
+\textbf{Authentication} & Sybil \\
+                         & Impersonation \\
+                         & GPS spoofing \\
+                         & Free-riding \\
+\midrule
+\textbf{Availability}   & Denial-of-service \\
+                         & Jamming \\
+                         & Flooding \\
+                         & Spamming \\
+                         & Malware \\
+\midrule
+\textbf{Confidentiality} & Eavesdropping \\
+                         & Traffic analysis \\
+                         & Man-in-the-middle \\
+\midrule
+\textbf{Integrity}       & Modification \\
+                         & Replay \\
+                         & Masquerade \\
+                         & Illusion \\
+\midrule
+\textbf{Privacy}         & Location tracking \\
+                         & Identity revealing \\
+\bottomrule
+\end{tabular}
+\caption[Classification of V2X Cybersecurity Threats based on Affected Security and Privacy Requirements]{Classification of V2X Cybersecurity Threats based on Affected Security and Privacy Requirements (Source: \cite{V2Xthreats})}
+\label{tab:v2x_threats}
+\end{table}
+
+
+While traditional network threats like Denial-of-Service or eavesdropping apply broadly to any wireless infrastructure, the V2X paradigm introduces a subset of novel, domain-specific attack vectors that directly exploit cooperative logic and vehicular trust mechanisms:
+
 \begin{itemize}
-    \item \textbf{Eavesdropping and Location Tracking:} Passive interception of unencrypted V2X cooperative awareness messages allows continuous, long-range tracking of a vehicle's unique telemetry signature, violating user privacy.
-    \item \textbf{Data Injection and Message Modification:} Injecting false Cooperative Awareness Messages (CAM) or Decentralized Environmental Notification Messages (DENM) allows attackers to forge non-existent road hazards, trigger abrupt autonomous emergency braking maneuvers, or force hazardous lane changes.
-    \item \textbf{Sybil Attacks:} The most devastating V2X-specific threat, where a single malicious node simultaneously generates and orchestrates a massive quantity of pseudo-legitimate virtual identities on the cooperative network. By simulating a dense fleet of non-existent vehicles, the attacker can fabricate widespread artificial traffic congestion or corrupt cooperative consensus algorithms, forcing autonomous routing frameworks to recalculate paths or yield precedence maliciously.
+    \item \textbf{Sybil Attacks:} A very destructive structural attack in which a single malicious node simultaneously creates and controls a large fleet of fictitious virtual identities.  The adversary can exploit cooperative consensus protocols, induce artificial traffic congestion, or maliciously force autonomous routing engines to yield right-of-way through coordinated injections of telemetry data from non-existent vehicles.
+    \item \textbf{Impersonation:} The active forgery of a legitimate user to execute malicious actions. By masquerading as an emergency service vehicle or a trusted Roadside Unit (RSU), the attacker can inject safety-critical messages in a trusted environment.
+    \item \textbf{Free-riding:} A selfish behaviour vector for network resource distribution. In this scenario, a compromised or misconfigured node constantly consumes incoming cooperative data and safety maps from neighbouring vehicles but actively suppresses its own telemetry transmissions. This information asymmetry deteriorates collective situational awareness and poisons localized collaborative driving models.
+    \item \textbf{Location Tracking:} A passive surveillance vector that exploits the mandatory broadcast nature of V2X cooperative awareness messages. An attacker can use a distributed network of receivers to capture unencrypted continuous telemetry signatures such as velocity profiles and spatial coordinates, to reconstruct extensive historical routes of specific targets, violating basic user privacy.
+    \item \textbf{Identity Revealing:} The targeted privacy violation vector is designed to disclose sensitive and identifiable information such as the owner's name, license plate, address or public-key certificates, to correlate a specific vehicle directly with its physical user \cite{V2Xthreats}. Adversaries can launch this attack with wireless eavesdroppers and by extracting long-term subscriber identifiers. Furthermore, real-world vulnerabilities in connected automotive services such as the Hyundai Blue Link mobile architecture demonstrate that attackers may exploit software vulnerabilities or malicious infotainment applications to compromise highly sensitive driver data such as emails, voice recordings, credentials, and PIN numbers \cite{cisa2017hyundai}.
 \end{itemize}
 
-
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/Sybil_attack.png}
+    \caption[Example of a Sybil Attack]{Example of a Sybil Attack (Source: \cite{sybil_vanet_figure}).}
+    \label{fig:Sybil_attack}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Regulations and methodologies}
-\subsection{R155 regulation}
+\subsection{UNECE R155 regulation}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/R155.png}
+    \caption[UNECE R155 Framework]{UNECE R155 Framework (Source: \cite{schaedlich2024complying}).}
+    \label{fig:R155_regulation}
+\end{figure}
 \subsection{TARA methodology}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/TARA.png}
+    \caption[TARA steps]{TARA steps (Source: \cite{rad2024understanding}).}
+    \label{fig:UDS_structure}
+\end{figure}
 \subsection{STRIDE methodology}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/STRIDE.png}
+    \caption[STRIDE security properties]{STRIDE security properties (Source: \cite{klein2025stride}).}
+    \label{fig:UDS_structure}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{UDS Protocol Vulnerabilities}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Attack Vectors on the Diagnostic Bus}
