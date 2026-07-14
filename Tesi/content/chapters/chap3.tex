@@ -18,7 +18,7 @@ Electronic Control Units (\glspl{ECU}) are embedded microcontrollers dedicated t
 
     \item \textbf{Sensor Spoofing and Manipulation:} Control loops in \glspl{ECU} are executed using analogue and digital sensor inputs. By altering the physical environment like injecting false ultrasonic, radar or camera data, the \gls{ECU} is forced into making erroneous operational decisions, leading to unexpected vehicle behaviour \cite{petit2015remote,radar_spoofing2026}.
     
-    \item \textbf{Over-The-Air (OTA) Interception:} Having wireless interfaces for remotely updating firmware allows for man-in-the-middle (MitM) attacks. If the OTA orchestration channel does not have strong mutual authentication and end-to-end encryption, adversaries may be able to eavesdrop, tamper, or revert firmware payloads \cite{OTArollback}.
+    \item \textbf{Over-The-Air (OTA) Interception:} Having wireless interfaces for remotely updating firmware allows for man-in-the-middle (MitM) attacks. If the \gls{OTA} orchestration channel does not have strong mutual authentication and end-to-end encryption, adversaries may be able to eavesdrop, tamper, or revert firmware payloads \cite{OTArollback}.
     
     \item \textbf{Node Isolation and Bus-Off Attacks:} These attacks exploit the inherent fault confinement mechanism specified by the \gls{CAN} standard. The health of each \gls{ECU} is monitored using 2 internal counters which are Transmit Error Counter (\gls{TEC}) and Receive Error Counter (\gls{REC}). With precise bit-flipping or target fuzzing synchronised at microsecond level, an attacker can deliberately force the \gls{TEC} of the target \gls{ECU} over the threshold of 255. This forces the victim \gls{ECU} into a permanent “Bus-Off” state, isolating it from the network entirely \cite{BusOff}.
 A Bus-Off attack can be successfully performed with dedicated hardware for real-time bit manipulation, like Canari, SPIRE or microcontrollers customised on \gls{FPGA}.
@@ -121,7 +121,7 @@ According to this model, Table \ref{tab:v2x_threats} provides a full classificat
 \end{table}
 
 
-While traditional network threats like Denial-of-Service or eavesdropping apply broadly to any wireless infrastructure, the V2X paradigm introduces a subset of novel, domain-specific attack vectors that directly exploit cooperative logic and vehicular trust mechanisms:
+While traditional network threats like Denial-of-Service or eavesdropping apply broadly to any wireless infrastructure, the V2X paradigm introduces a subset of novel, domain-specific attack vectors. Based on the comprehensive analysis provided in \cite{V2Xthreats}, these threats directly exploit cooperative logic and vehicular trust mechanisms:
 
 \begin{itemize}
     \item \textbf{Sybil Attacks:} A very destructive structural attack in which a single malicious node simultaneously creates and controls a large fleet of fictitious virtual identities.  The adversary can exploit cooperative consensus protocols, induce artificial traffic congestion, or maliciously force autonomous routing engines to yield right-of-way through coordinated injections of telemetry data from non-existent vehicles.
@@ -138,29 +138,84 @@ While traditional network threats like Denial-of-Service or eavesdropping apply 
     \label{fig:Sybil_attack}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
 \section{Regulations and methodologies}
+Contemporary automotive cybersecurity has to evolve from ad-hoc security patches towards standardized risk management frameworks. Regulatory bodies and international standard organizations have defined mandatory compliance requirements and engineering methodologies to enforce systematic protection throughout the vehicle lifecycle.
 \subsection{UNECE R155 regulation}
+The United Nations Economic Commission for Europe (\gls{UNECE}) Regulation No. 155 is a binding regulatory framework that makes the vehicle type approval conditional to the implementation of a certified Cyber Security Management System (\gls{CSMS}) \cite{unece2021r155}. R155 is a global standard and applies to all major markets around the world. It puts the burden of securing vehicles on original equipment manufacturers (\glspl{OEM}) and mandates that they take security measures across the supply chain.
+
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.95\textwidth]{images/R155.png}
-    \caption[UNECE R155 Framework]{UNECE R155 Framework (Source: \cite{schaedlich2024complying}).}
+    \caption[UNECE R155 Framework]{UNECE R155 Framework defining the core obligations for automotive type approval (Source: \cite{schaedlich2024complying}).}
     \label{fig:R155_regulation}
 \end{figure}
+Compliance with the \gls{UNECE} R155 framework requires action on four key organisational pillars \cite{schaedlich2024complying} as shown in Figure \ref{fig:R155_regulation}:
+
+\begin{itemize}
+    \item \textbf{Managing vehicle cyber risks:} \glspl{OEM} must develop comprehensive protocols for risk identification, validation and management across the entire vehicle ecosystem.
+    \item \textbf{Securing vehicles by design:} Native security controls should be embedded in the automotive architecture through the value chain to minimise the overall attack surface.
+    \item \textbf{Fleet detection and response:} Manufacturers need to monitor active vehicle fleets for ongoing threats and respond to security incidents in a timely manner.
+    \item \textbf{Secure software updates:} Protect against the possibility that future changes such as Over-the-Air (\gls{OTA}) updates could compromise the safety of vehicles or the regulatory validation.
+\end{itemize}
+
+In this regulatory context, the use and deployment of automated penetration testing software has an operational, vital role. Such a tool directly addresses the validation requirements under the \textit{Managing vehicle cyber risks} and \textit{Fleet detection and response} pillars. With R155, \glspl{OEM} can no longer rely solely on theoretical risk assessments; they are legally required to validate and demonstrate the effectiveness of their security controls against realistic attack profiles prior to type approval, as well as throughout the vehicle's post-production lifecycle. In this work, the developed software automates the execution of targeted attack vectors on the diagnostic bus, translating abstract security requirements into empirical reproducible penetration testing routines.
+
+In addition, \gls{UNECE} R155 sets challenging compliance targets but purposefully does not prescribe a specific and standardized engineering approach. Instead the regulation provides practical guidance in \textbf{Annex 5}, which contains an extensive taxonomy of reference cyber threats, vulnerabilities and targeted attack scenarios. This appendix acts as an informal checklist for automotive security teams, emphasising important testing surfaces like diagnostic interface manipulation, session hijacking, and malicious firmware flashing. Therefore, the penetration testing suite developed in this thesis is in full accordance with the spirit of \textbf{Annex 5}, by implementing specific attack models for the systematic evaluation of the vehicle's resilience against threat patterns.
 \subsection{TARA methodology}
+To put the risk management objectives set by UNECE R155 into practice, the ISO/SAE 21434 standard proposes the Threat Analysis and Risk Assessment (TARA) method. TARA provides an engineering approach for systematic identification of assets, vulnerability assessment and risks measurement during development phase.
+
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.95\textwidth]{images/TARA.png}
-    \caption[TARA steps]{TARA steps (Source: \cite{rad2024understanding}).}
-    \label{fig:UDS_structure}
+    \includegraphics[width=0.90\textwidth]{images/TARA.png}
+    \caption[TARA steps]{The six core engineering steps of the TARA process according to ISO/SAE 21434 (Source: \cite{rad2024understanding}).}
+    \label{fig:TARA_steps}
 \end{figure}
+
+The \gls{TARA} execution lifecycle is based on the cyclic architecture shown in Figure \ref{fig:TARA_steps} and consists of six interconnected phases \cite{rad2024understanding}:
+\begin{enumerate}
+    \item \textbf{Item definition:} Defining the boundaries, components, and operating environment of the automotive system under consideration.
+    \item \textbf{Asset identification:} Assessing the components to determine their value and mapping th specific cybersecurity properties (Confidentiality, Integrity, Availability).
+    \item \textbf{Impact rating:} Assessment of the operational, safety, financial, and privacy impacts of a compromised asset.
+    \item \textbf{Threat analysis:} Identifying potential attack vectors and malicious actions targeting the defined system.
+    \item \textbf{Risk determination:} Assessing the probability of successful attack exploitation and comparing it with the severity of the impact.
+    \item \textbf{Cybersecurity goals:} Specify the top-level security requirements and mitigations that will reduce the calculated risk to tolerable levels.
+\end{enumerate}
+
+The conventional implementation of the \gls{TARA} approach is highly reliant on qualitative matrices and subjective expert judgements, especially for the assessment of the parameters of attack feasibility in Phase 5. Under standard ISO/SAE 21434 guidelines, attack feasibility is calculated based on factors such as required elapsed time, specialist expertise, window of opportunity and equipment complexity. However, without practical empirical data these metrics might be too conservative or inaccurate.
+
+This methodological limitation is directly addresses by the penetration testing software engineered in this thesis, as it acts as an empirical validation layer of the \textit{Threat analysis} (Phase 4) and \textit{Risk determination} (Phase 5) steps. The tool translates theoretical threat scenarios to measurable and reproducible cybersecurity metrics by executing real-world automated attack vectors against targeted automotive assets such as the UDS diagnostic interface. If the automated suite can desynchronise a diagnostic state machine or bypasses a security seed-key handshake within milliseconds, it provides undeniable, quantitative evidence that the attack feasibility is high. Therefore, this penetration testing framework allows to base the TARA risk calculation on physical evidence, so that following \textit{Cybersecurity goals} (Phase 6) are correctly adapted to verified, architectural as opposed to hypothetical vulnerabilities.
 \subsection{STRIDE methodology}
+While TARA governs high-level risk management, engineering teams require specific threat modeling heuristics to evaluate individual protocol architectures. The STRIDE methodology, originally developed by Microsoft, classifies threats into six distinct categories based on the security property they violate.
+
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.95\textwidth]{images/STRIDE.png}
     \caption[STRIDE security properties]{STRIDE security properties (Source: \cite{klein2025stride}).}
-    \label{fig:UDS_structure}
+    \label{fig:STRIDE_properties}
 \end{figure}
+
+As summarized in Table \ref{tab:stride_matrix}, the STRIDE framework decomposes system vulnerabilities by analyzing the adversarial objectives against data flows, interfaces, and protocol states \cite{klein2025stride}:
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.3} % Spaziatura verticale ottimale
+    \begin{tabularx}{\textwidth}{|l|l|X|}
+        \hline
+        \textbf{STRIDE Threat} & \textbf{Violated Property} & \textbf{Technical Description} \\ \hline
+        \textbf{Spoofing} & Authenticity & An adversary impersonates a legitimate node, ECU, or diagnostic user. \\
+        \textbf{Tampering} & Integrity & Malicious modification of data payloads, configuration settings, or code. \\
+        \textbf{Repudiation} & Non-repudiation & An attacker performs actions but denies involvement due to insufficient logging. \\
+        \textbf{Information Disclosure} & Confidentiality & Unauthorized access to private data streams, memory dumps, or firmware fragments. \\
+        \textbf{Denial of Service} & Availability & Disrupting system availability, causing active sessions to crash or timeout. \\
+        \textbf{Elevation of Privilege} & Authorization & Gaining unauthorized administrative control or executing restricted diagnostic commands. \\ \hline
+    \end{tabularx}
+\caption[The STRIDE Threat Modeling Matrix]{The STRIDE Threat Modeling Matrix and corresponding security properties (Source: \cite{klein2025stride})}
+\label{tab:stride_matrix}
+\end{table}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
 \section{UDS Protocol Vulnerabilities}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

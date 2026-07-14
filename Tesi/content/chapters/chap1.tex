@@ -7,7 +7,7 @@ For several decades the design of vehicles was mainly focused on providing a rel
 To support this digital transition, the underlying Electrical and Electronic (\gls{EE}) architecture had to evolve through three main topological models\cite{srmtech_vehicle_architecture_2025}, shown in image \ref{fig:automotive_domains}:
 
 \begin{enumerate}
-    \item \textbf{Distributed architecture (The legacy model):} In early electronic systems, every new feature—such as anti-lock braking (ABS) or airbag deployment required a dedicated Electronic Control Unit (\gls{ECU}). These units were in a closed network state and would not interact with external environments.
+    \item \textbf{Distributed architecture (The legacy model):} In early electronic systems, every new feature much like anti-lock braking (ABS) or airbag deployment required a dedicated Electronic Control Unit (\gls{ECU}). These units were in a closed network state and would not interact with external environments.
     \item \textbf{Domain control architecture (The current standard):} In this division the architecture is organised into domains according to functionality. Typically, these domains include Powertrain, Chassis, Body, ADAS, and Infotainment.
     \item \textbf{Zonal Architecture (The Next-Generation Paradigm):} The latest evolutionary step organises the vehicle's network based on physical location (e.g., front, rear, left, right) rather than logical function. Localised Zonal Control Unit collect data from nearby components and stream it to a central ECU, drastically reducing the amount of wiring necessary and allowing the use of strategic high speed wiring.
 \end{enumerate}
@@ -38,7 +38,7 @@ The presence of these different functional domains quickly revealed severe struc
 \end{itemize}
 
 \subsection{Convergence and Automotive Cybersecurity Implications}
-This transition from isolated, low-bandwidth buses to high-speed, interconnected topologies has dramatically changed the automotive cybersecurity landscape. Traditionally, low critical domains were physically separated from safety-critical networks. Nevertheless, producer requirements for over-the-air (OTA) firmware updates, remote cloud diagnostics, and sophisticated infotainment connectivity have forced these distinct domains to be linked via centralized gateways
+This transition from isolated, low-bandwidth buses to high-speed, interconnected topologies has dramatically changed the automotive cybersecurity landscape. Traditionally, low critical domains were physically separated from safety-critical networks. Nevertheless, producer requirements for over-the-air (\gls{OTA}) firmware updates, remote cloud diagnostics, and sophisticated infotainment connectivity have forced these distinct domains to be linked via centralized gateways
 \cite{srmtech_vehicle_architecture_2025}.
 
 This architectural convergence leads to severe security vulnerabilities, which are now governed by the \textit{ISO/SAE 21434 Automotive Cybersecurity Engineering standard} \cite{iso21434_2021}. While traditional safety engineering ensures that a system is robust towards random hardware faults, cybersecurity engineering must ensure the containment of intentional, malicious exploits.
