@@ -1,4 +1,5 @@
-\chapter{Threat and Vulnerability Analysis}
+\chapter{Threat and Vulnerability Analysis}\label{ch:Threat_analysis}
+
 \section{Automotive Threat Analysis}\label{sec:automotive_threat_analysis}
 
 Modern vehicles are rapidly evolving into being Connected and Autonomous Vehicles (CAVs), which has dramatically increased their cyber-physical attack surface. New automotive architectures are not closed systems, but rather complex, distributed networks where safety-critical components interact and communicate with infotainment systems, external vehicle-to-everything (\gls{V2X}) interfaces, and cloud-based \gls{OEM} infrastructures.
@@ -139,7 +140,7 @@ While traditional network threats like Denial-of-Service or eavesdropping apply 
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Regulations and methodologies}
+\section{Regulations and methodologies}\label{sec:regulations}
 Contemporary automotive cybersecurity has to evolve from ad-hoc security patches towards standardized risk management frameworks. Regulatory bodies and international standard organizations have defined mandatory compliance requirements and engineering methodologies to enforce systematic protection throughout the vehicle lifecycle.
 \subsection{UNECE R155 regulation}
 The United Nations Economic Commission for Europe (\gls{UNECE}) Regulation No. 155 is a binding regulatory framework that makes the vehicle type approval conditional to the implementation of a certified Cyber Security Management System (\gls{CSMS}) \cite{unece2021r155}. R155 is a global standard and applies to all major markets around the world. It puts the burden of securing vehicles on original equipment manufacturers (\glspl{OEM}) and mandates that they take security measures across the supply chain.
@@ -185,8 +186,8 @@ The \gls{TARA} execution lifecycle is based on the cyclic architecture shown in 
 The conventional implementation of the \gls{TARA} approach is highly reliant on qualitative matrices and subjective expert judgements, especially for the assessment of the parameters of attack feasibility in Phase 5. Under standard ISO/SAE 21434 guidelines, attack feasibility is calculated based on factors such as required elapsed time, specialist expertise, window of opportunity and equipment complexity. However, without practical empirical data these metrics might be too conservative or inaccurate.
 
 This methodological limitation is directly addresses by the penetration testing software engineered in this thesis, as it acts as an empirical validation layer of the \textit{Threat analysis} (Phase 4) and \textit{Risk determination} (Phase 5) steps. The tool translates theoretical threat scenarios to measurable and reproducible cybersecurity metrics by executing real-world automated attack vectors against targeted automotive assets such as the UDS diagnostic interface. If the automated suite can desynchronise a diagnostic state machine or bypasses a security seed-key handshake within milliseconds, it provides undeniable, quantitative evidence that the attack feasibility is high. Therefore, this penetration testing framework allows to base the TARA risk calculation on physical evidence, so that following \textit{Cybersecurity goals} (Phase 6) are correctly adapted to verified, architectural as opposed to hypothetical vulnerabilities.
-\subsection{STRIDE methodology}
-While TARA governs high-level risk management, engineering teams require specific threat modeling heuristics to evaluate individual protocol architectures. The STRIDE methodology, originally developed by Microsoft, classifies threats into six distinct categories based on the security property they violate.
+\subsection{STRIDE methodology}\label{subsec:STRIDE}
+While TARA handles high-level risk management, engineering teams need specific threat modelling to assess individual protocol architectures. STRIDE is a method for classifying threats originally developed by Microsoft. It classifies threats into six categories based on the security property they violate.
 
 \begin{figure}[htbp]
     \centering
@@ -195,7 +196,7 @@ While TARA governs high-level risk management, engineering teams require specifi
     \label{fig:STRIDE_properties}
 \end{figure}
 
-As summarized in Table \ref{tab:stride_matrix}, the STRIDE framework decomposes system vulnerabilities by analyzing the adversarial objectives against data flows, interfaces, and protocol states \cite{klein2025stride}:
+The STRIDE framework is summarized in Table \ref{tab:stride_matrix}, which breaks down system vulnerabilities by considering adversarial objectives against data flows, interfaces, and protocol states \cite{klein2025stride}:
 
 \begin{table}[htbp]
     \centering
@@ -211,12 +212,47 @@ As summarized in Table \ref{tab:stride_matrix}, the STRIDE framework decomposes 
         \textbf{Denial of Service} & Availability & Disrupting system availability, causing active sessions to crash or timeout. \\
         \textbf{Elevation of Privilege} & Authorization & Gaining unauthorized administrative control or executing restricted diagnostic commands. \\ \hline
     \end{tabularx}
-\caption[The STRIDE Threat Modeling Matrix]{The STRIDE Threat Modeling Matrix and corresponding security properties (Source: \cite{klein2025stride})}
+\caption[The STRIDE Threat Modelling Matrix]{The STRIDE Threat Modelling Matrix and corresponding security properties (Source: \cite{klein2025stride})}
 \label{tab:stride_matrix}
 \end{table}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{UDS Protocol Vulnerabilities}
+\section{UDS Protocol Vulnerabilities}\label{sec:UDS_vulnerabilities}
 
+Based on the diagnostic architecture formalised in Chapter \ref{ch:uds_protocol} and the STRIDE threat modelling framework defined in Section \ref{subsec:STRIDE}, this section systematically analyses the inherent security flaws of the ISO 14229 standard. The mechanics of the protocol such as session management and security access links are functional for operational workshops but their deployment in connected \gls{EE} ecosystems creates exploitable architectural vulnerabilities. 
+
+Recently, the mapping of specific Service Identifiers (\glspl{SID}) to the STRIDE dimensions has been studied in security researches presented at the IEEE Conference on Communications and Network Security (CNS) \cite{UDS_vulnerability}, to demonstrate how these deterministic diagnostic interfaces can be weaponised as shown in Figure \ref{fig:SID_vulnerability}. 
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/UDS_vulnerability.png}
+    \caption[UDS vulnerability analysis]{UDS vulnerability analysis mapped via STRIDE methodology (Source: \cite{UDS_vulnerability}).}
+    \label{fig:SID_vulnerability}
+\end{figure}
+
+The structural weaknesses found in the core diagnostic sub-services expose the vehicle infrastructure to multiple high-impact attack surfaces, which are detailed in the following subsections.
+\newpage
+\subsection{Replay Vectors on Security Access (SID 0x27)}
+The \textit{Security Access} routine is based on a challenge-response verification as seen in Section \ref{sec:security_access}. An architectural vulnerability occurs when the Pseudo-Random Number Generator (\gls{PRNG}) embedded in the \gls{ECU} firmware has low entropy. In such cases, the challenges generated are not random enough. An adversary that can sniff the bus could record many valid authentication exchanges and construct a deterministic lookup table composed of seeds and relative keys. If the \gls{PRNG} recycling is not adequate and a duplicated seed is re-issued, the attacker can perform a replay attack by sending the previously captured valid key, thus breaking the security layer without reverse-engineering the underlying cryptographic function.
+
+\subsection{Exhaustive Brute-Force Exploitation (SID 0x27)}
+In addition to cryptographic predictability, the practical deployment of SID 0x27 frequently suffers from inadequate key-length enforcement. When the security keys assigned to critical diagnostic privileges (such as flashing routines or execution overrides) utilize truncated bit-lengths, the absolute key space is constrained. If the target ECU firmware lacks stateful anti-brute-force controls—such as exponential timing delays or permanent session lockouts after consecutive authentication failures—an automated attacker can mount a high-speed, exhaustive search loop, querying key values sequentially until full session escalation is achieved.
+
+\subsection{Direct Memory Access and Secret Extraction (SIDs 0x23 / 0x3D)}
+The operational primitives \textit{Read Memory By Address} (0x23) and \textit{Write Memory By Address} (0x3D) allow low-level interactions with the volatile (RAM) and non-volatile (Flash) memory segments of the controller. If these services are left completely exposed—or accessed following a successful SID 0x27 bypass—they present a critical Information Disclosure risk. An attacker can command a full memory dump to extract raw compiled firmware binaries. Reverse-engineering of these binaries reveals proprietary logic, embedded cryptographic assets, master vehicle PIN configurations, and hardcoded security material.
+
+\subsection{Resource Exhaustion and DoS Infiltration (SID 0x3E)}
+While the \textit{Tester Present} (0x3E) command is natively used to keep a diagnostic session alive by inhibiting inactivity timeouts, its message cadence can be subverted to execute a local Denial of Service (DoS). By flooding a targeted ECU with high-frequency SID 0x3E frames (or repetitive diagnostic requests), an attacker can monopolize the shared network medium and saturate the microcontroller’s execution queue. This processing overhead blocks the application layer from running its deterministic control loop, effectively preventing safety-critical operational routines from executing in real time.
+
+\subsection{Anti-Forensics via Diagnostic Log Deletion (SID 0x14)}
+The \textit{Clear Diagnostic Information} (0x14) service provides a mechanism to purge non-volatile memory segments containing Diagnostic Trouble Codes (DTCs) and active freeze-frame telemetry. In a post-compromise scenario, this capability serves as a highly effective anti-forensic instrument aligned with the Repudiation threat profile. A malicious actor can execute a multi-stage network exploit and subsequently issue a global SID 0x14 request to wipe all system error logs. This operation erases the digital trail of the intrusion, blinding onboard Intrusion Detection Systems (IDS) and severely compromising subsequent forensic auditing.
+
+\subsection{Arbitrary Data and Configuration Tampering (SID 0x2E)}
+The \textit{Write Data By Identifier} (0x2E) service allows modifications to persistent configuration parameters, localized calibration offsets, and variant coding tables within the ECU. Unauthorized exploitation of this service yields severe Tampering risks with immediate cyber-physical consequences. By injecting fraudulent payloads via SID 0x2E, an attacker can alter the vehicle's dynamic handling behavior, falsify internal sensor metrics, or intentionally induce safe-state downshifting, directly undermining the functional safety parameters of the automotive platform.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Attack Vectors on the Diagnostic Bus}
+\label{sec:attack_vectors_diagnostic_bus}
+
+While the preceding sections have provided a comprehensive analysis of UDS vulnerabilities and formalized the theoretical threat landscape using the STRIDE methodology, a crucial distinction must be made regarding the scope of this work. The primary objective of this thesis is not to map out complete, end-to-end malicious attack paths or to simulate complex infrastructure-wide compromises. Instead, this research focuses on a defensive and analytical paradigm, aiming to demonstrate that these specific, protocol-level vulnerabilities are inherently present within the ISO 14229 standard and are practically exploitable under realistic constraints.
+
+Consequently, rather than focusing on complex weaponization chains, this study isolates the core structural flaws of the diagnostic layer to verify their susceptibility to targeted network infiltration. To bridge the gap between theoretical risk assessment and practical validation, the operational exploitability of these flaws will be explicitly demonstrated in the subsequent section. Through the implementation of dedicated, non-destructive validation scripts presented in Chapter \ref{ch:attacks}, where it will provided concrete evidence of how these deterministic diagnostic routines can be subverted, establishing a clear baseline for the development of necessary automotive intrusion detection and mitigation strategies.
