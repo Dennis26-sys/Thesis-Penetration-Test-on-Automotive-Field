@@ -14,9 +14,6 @@ The ISO 14229 standard is divided into several parts to separate core applicatio
 \end{itemize}
 
 \gls{UDS} handles application-level diagnostic commands, but a major engineering challenge is the transmission of large payloads, such as fault memory dumps or ECU firmware images over standard \gls{CAN} fieldbuses, which limits the data payload to 8 bytes per frame. To overcome this limitation, \gls{CAN}-based \gls{UDS} implementation uses the ISO 15765-2 transport protocol, commonly known as ISO-TP\cite{medium_uds_isotp_relationship}. ISO-TP manages the fragmentation, packetization, flow control, and reassembly of diagnostic messages, allowing payloads up to 4095 bytes to be transferred across multiple consecutive \gls{CAN} frames.
-\subsection{UDS on IP: DoIP and SOME/IP Transport Frameworks}
-?????????
-?????????
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Client-Server Diagnostic Model}\label{sec:client_server_model}
 The \gls{UDS} protocol is based on a bidirectional client-server communication topology to perform diagnostic functions. In this framework the \textit{client}, referred to as tester, is represented by an external diagnostic tool or an onboard central gateway and starts diagnostic sequences by sending request messages. On the other hand, the onboard \glspl{ECU} are the \textit{servers} which process the incoming client requests and send back the corresponding response messages containing status data, routine results, or fault information \cite{csselectronics_uds_protocol}.
@@ -29,7 +26,43 @@ The \gls{UDS} protocol is based on a bidirectional client-server communication t
 \end{itemize}
 
 These client-server interactions are carried out according to standard timing parameters defined under the ISO 14229-2 specification to ensure network stability and avoid communication deadlocks. The most important timing variables include the tester present timeout ($P3_{max}$), which specifies the maximum allowed idle period before a server automatically reverts to the default session, and the server response time ($P2_{max}$), which defines the maximum time a server has to start the transmission of its response after receiving a client request. If a server requires additional processing time to perform a complex operation such as memory erasure or cryptographic verification, it must send a specific Negative Response Code (\texttt{0x78}, Request Correctly Received - Response Pending) to dynamically extend the $P2_{max}$ window and prevent a client-side timeout.
+\subsection{Diagnostic over IP (DoIP)}
+\gls{DoIP} is standardised in ISO 13400 and provides a transport abstraction layer that directly encapsulates standard ISO 14229 UDS diagnostic requests into \gls{TCP}/\gls{IP} and \gls{UDP}/\gls{IP} network communication sockets \cite{iso13400_2019}. Structurally, a DoIP edge gateway offers an external communication bridge between an external test equipment (Tester) and the internal automotive network sub-buses. 
 
+The protocol does not provide direct access to the vehicle's network layer, but rather enforces a controlled sequence of steps to ensure the secure routing of diagnostic data.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.80\textwidth]{images/DOIP.png}
+    \caption[DoIP Diagnostic Session Initialization and Routing Sequence]{DoIP communication sequence: Routing Activation phase followed by decoupled Diagnostic Request/Response transmission (Source: \cite{piembsystech_doip}).}
+    \label{fig:doip_sequence}
+\end{figure}
+
+As shown in Figure \ref{fig:doip_sequence}, the lifecycle of a \gls{DoIP}-based diagnostic interaction follows a deterministic sequence controlled by the edge gateway:
+\begin{itemize}
+    \item \textbf{Routing Activation Phase:} Once a stateful TCP connection is established, the external diagnostic tool (Tester) is not able to immediately send diagnostic service payloads. It shall first send a formal \textit{Routing Activation Request} through the \gls{DoIP} Gateway. The gateway assesses the internal security state, authentication parameters and vehicle configuration criteria before it returns a successful \textit{Routing Activation Response}. This operation acts as an application-level firewall and initialises and opens the logical routing channel for that specific tester socket.
+    \item \textbf{Diagnostic Data Transmission:} After the routing channel is verified as active, the Tester transmits its encapsulated \textit{Diagnostic Request} through the gateway directly. The \gls{DoIP} gateway is an intelligent router and translator that removes the Ethernet/IP/TCP headers, extracts the raw ISO 14229 diagnostic payload and places the corresponding request frame into the internal sub-network, namely a CAN bus, to the destination \gls{ECU}.
+    \item \textbf{Decoupled Response Mechanics:} Upon processing the service request, the target sub-bus controller produces an internal response. The \gls{DoIP} gateway receives the \textit{Diagnostic Response} and repackages the payload into a structured \gls{IP} socket packet and returns it to the listening Tester node.
+\end{itemize}
+By removing the 4095-byte buffering limit imposed by ISO-TP, this architecture enables the streaming of multi-megabyte firmware binaries at full Ethernet line rates (100 Mbps to several Gbps), reducing flashing time from hours to minutes.
+
+\subsection{Scalable Service-Oriented MiddlewarE over IP (SOME/IP)}
+\gls{SOME/IP} is a scalable middleware tailored for high-performance in-vehicle computing needs and it is used in modern Zonal and Domain architectures \cite{autosar_someip}. Compared to \gls{DoIP}'s static client-server routing, \gls{SOME/IP} operates on layers 5 to 7 of the \gls{OSI} model, natively supporting inter-\gls{ECU} communication by implementing a flexible service-oriented architecture. In this context, a complete set of communication primitives can encapsulate traditional client-server diagnostic requests, allowing UDS interactions to go beyond strict point-to-point limitations.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/SOMEIPProtocol.jpg}
+    \caption[SOME/IP Communication Primitives and Interactions]{SOME/IP communication primitives: Method-Call (Client-Server), Event-Callback, and Notification-Callback models (Source: \cite{covesa_vsomeip_wiki}).}
+    \label{fig:someip_primitives}
+\end{figure}
+
+As shown in Figure \ref{fig:someip_primitives}, \gls{SOME/IP} structures the interaction between a client and a server using three main distinct transactional flows:
+\begin{itemize}
+    \item \textbf{METHOD-Call:} This primitive directly emulates the synchronous client-server paradigm of standard UDS diagnostics. The client sends a request message with the raw input parameters and the server runs the corresponding subroutine before returning a response frame or an explicit error parameter code.
+    \item \textbf{EVENT-Callback:} This primitive provides a decoupled publish-subscribe mechanism. The server hosts and consumes event-groups that the client subscribes to. In case of an internal event on the server \gls{ECU}, it asynchronously publishes the corresponding update payload to all active subscribers.
+    \item \textbf{Notification-Callback:} Comparable to events, this flow allows a client to subscribe to persistent attribute values or internal variables. For example, when a target field drops or changes its structural state, the server automatically fires a notification packet to synchronise the client node.
+\end{itemize}
+This multi-layered approach allows for localised Zonal Control Units (ZCUs) to autonomously invoke diagnostic services as service methods or stream cross-domain diagnostics without having to establish dedicated, rigid network channels, keeping absolute compliance with the abstract core logic defined in ISO 14229-1.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{UDS Request/Response Formats}\label{sec:uds_formats}
 
