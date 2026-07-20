@@ -38,54 +38,58 @@ The architectural basis for the system is the Linux \textit{SocketCAN} subsystem
 \end{itemize}
 
 \subsection{Automotive Security Framework: Caring Caribou}
-A central component of the offensive software toolset is \textbf{Caring Caribou}, an industry-standard open-source penetration testing framework tailored specifically for automotive electronic control systems \cite{caring_caribou_github}. Integrated into the execution pipeline via Python's \texttt{subprocess} API, Caring Caribou is utilized to automate exploratory phases that would otherwise be computationally prohibitive if implemented manually from scratch. 
+\textbf{Caring Caribou} is an industry-standard open-source penetration testing framework, customised for automotive \glspl{ECU} and a core component of the offensive software toolkit \cite{caring_caribou_github}. It is built into the execution pipeline through Python's \texttt{subprocess} \gls{API} to automate exploratory phases that would otherwise be computationally prohibitive if implemented manually from scratch. 
 
-Within this laboratory setup, two main capabilities of the framework are heavily leveraged:
+In this laboratory setup, two major capabilities of the framework are extensively leveraged:
 
 \subsubsection*{UDS Discovery}
-To identify diagnostic capabilities within the connected server node, the framework executes the automated discovery primitive:
+The framework executes the automated discovery primitive to ascertain diagnostic capabilities in the connected server node:
+
 \begin{lstlisting}[language=bash, caption={Caring Caribou UDS Discovery Command Structure}]
 caringcaribou -i <interface> uds discovery -min <min_value> -max <max_value>
 \end{lstlisting}
-This module sweeps a defined range of CAN identifiers to locate listening \glspl{ECU}. It systematically discovers supported ISO 14229 Service Identifiers (\glspl{SID}) and available sub-functions by handling positive and negative response codes under the hood, outputting the results into structured analytical logs.
+
+This module scans a defined range of Arbitration Identifiers to detect listening \glspl{ECU}. It systematically finds the diagnostic address by listening to the positive response and gather the findings on screen.
 
 \subsubsection*{Automated Security Seed Capturing}
-For cryptographic and entropy evaluation of the diagnostic security layer, Caring Caribou automates the interaction with the \textit{Security Access} (\texttt{0x27}) service using the following command structure:
+Caring Caribou automates the interaction with the \textit{Security Access} (\texttt{0x27}) service, allowing cryptographic and entropy evaluation, using the following command:
+
 \begin{lstlisting}[language=bash, caption={Caring Caribou Security Seed Capture Command Syntax}]
 caringcaribou -i can0 uds security_seed -r 3 -n 200 0x02 0x01 0xAAAAAAAA 0xBBBBBBBB
 \end{lstlisting}
-This specific implementation handles the full diagnostic routine lifecycle: it automatically resets the ECU session state (via parameter \texttt{-r 3}), requests a predefined number of sequential seeds (parameter \texttt{-n 200}) for a targeted diagnostic session and security level, and handles the explicit physical addressing routing from the source transmitter identifier (\texttt{txid: 0xAAAAAAAA}) to the corresponding destination receiver identifier (\texttt{rxid: 0xBBBBBBBB}). The resulting seed distribution data is fed into the logging engine to identify entropy degradation or PRNG (Pseudo-Random Number Generator) vulnerabilities.
 
+This particular implementation deals with the full diagnostic routine lifecycle, automatically resetting the \gls{ECU} session state (using parameter \texttt{-r 3}), requesting a fixed number of seeds (parameter \texttt{-n 200}) for a specific diagnostic session and security level; handling the explicit physical addressing routing from source transmitter identifier (\texttt{transmitter id: 0xAAAAAAAA}) to the corresponding destination receiver identifier (\texttt{receiver id: 0xBBBBBBBB}). The resulting seed distribution data is then stored into a database to identify entropy degradation or \gls{PRNG} vulnerabilities.
 
 \subsection{Database Architecture and Data Persistence Layer}
-To support both real-time analytical monitoring and long-term security evaluations, the software environment isolation layer integrates two distinct database engines. These local storage solutions are highly decoupled to fulfill two different functional requirements within the testbed: high-throughput telemetry logging and stateful cryptographic accounting.
+To support both real-time analytical monitoring and long-term security evaluations, the software environment isolation layer integrates two distinct database engines. These local storage solutions are decoupled to meet two different functional requirements within the testbed: telemetry logging and stateful cryptographic accounting.
 
 \subsubsection*{Network Traffic Logging Database}
-The first database operates as a high-performance network sniffer and historian, continuously recording raw traffic generated across the vehicular bus interface. Due to the high-frequency nature of CAN communications, where hundreds of messages can be broadcast within milliseconds, this storage engine is optimized for fast insert operations. The underlying table schema is structured with four fundamental columns designed to reconstruct the exact network state during post-incident forensic analysis:
+
+The first database operates as a high-performance network sniffer, continuously archiving raw traffic generated across the vehicular bus interface. \gls{CAN} communications are very frequent, with hundreds of messages being broadcast in milliseconds, so this storage engine is optimised for fast inserts. The underlying table schema is designed with four key columns aimed at reconstructing the network state during attack path evaluation or post-incident forensic analysis:
 \begin{itemize}
-    \item \textbf{Arbitration ID:} Stores the CAN identifier, allowing immediate filtering of messages based on their priority, functional domain, or specific target ECU node.
-    \item \textbf{Payload:} A binary or hexadecimal string containing the raw data bytes (up to 8 bytes for standard CAN) transported by the frame.
-    \item \textbf{Interface:} Records the specific network interface socket (e.g., \texttt{can0}), providing multi-bus mapping capabilities in case multiple transceivers are deployed.
-    \item \textbf{Timestamp:} A high-resolution time primitive capturing the exact epoch at which the frame was received by the Linux kernel socket, allowing accurate inter-frame jitter and cyclic frequency calculations.
+    \item \textbf{Arbitration ID:} Contains the \gls{CAN} identifier, which enables a filtering of messages. This column is used in fuzzing attack to understand which input can affect the internal state of the vehicle and understand the topology of the vehicle.
+    \item \textbf{Payload:} The raw data  bytes transported by the frame in a binary or hexadecimal string. This field is useful to analyse to check for counter and checksum field that can be inferred from a collection of frames.
+    \item \textbf{Interface:} Log the specific network interface socket (e.g., \texttt{can0}) to enable multi-bus mapping capabilities in case of multiple transceivers deployment.
+    \item \textbf{Timestamp:} A high-resolution time primitive that records the exact epoch at which the frame was received by the Linux kernel socket, which allows for accurate inter-frame jitter and cyclic frequency calculations.
 \end{itemize}
 
 \subsubsection*{Cryptographic Security Access Database}
-The second database is specifically tailored to analyze the entropy, predictability, and robustness of the diagnostic security layer. Unlike the continuous streaming model of the network logger, this engine acts as a stateful ledger dedicated exclusively to monitoring the \textit{Security Access} (\texttt{0x27}) service request loops. Its schema is meticulously designed to isolate statistical anomalies in the ECU's pseudo-random number generator (PRNG) by grouping collected diagnostic challenges into three key columns:
+The second database is focused on the analysis of the entropy, predictability and robustness of the diagnostic security layer. This engine differs from the network logger model in the fact that it is a stateful ledger only for tracking the \textit{Security Access} (\texttt{0x27}) service request loops. Its schema is carefully designed to show statistical anomalies in the \gls{ECU}'s \gls{PRNG} by grouping collected diagnostic challenges into three columns:
 \begin{itemize}
-    \item \textbf{Seed:} Stores the unique challenge sequence transmitted by the server ECU upon a diagnostic authorization request.
-    \item \textbf{Key:} Records the corresponding cryptographic response calculated or injected to unlock the specific security level.
-    \item \textbf{Counter:} An atomic integer that tracks the frequency of occurrence for each specific seed value. Every time an active script or testing framework captures a seed that already exists in the ledger, the database increments this field rather than creating a duplicate row.
+    \item \textbf{Seed:} Stores the unique challenge sent by the server ECU after a diagnostic authorization request.
+    \item \textbf{Key:} Records the corresponding cryptographic response calculated or injected to unlock the security level.
+    \item \textbf{Counter:} An atomic integer that counts the number of occurrences for each seed value. If an active script or testing framework captures a seed that already exists in the ledger, the database will increment this field rather than creating a duplicate row.
 \end{itemize}
-This aggregation logic provides the mathematical foundation necessary to compute seed distribution patterns, identify recurrence vulnerabilities, and detect static or poorly randomized cryptographic challenges within the connected ECU firmware.
+This aggregation logic lays the mathematical foundation required to compute seed distribution patterns, identify recurrence vulnerabilities and detect static or poorly randomised cryptographic challenges within the connected \gls{ECU} firmware.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Main Limitations}
 \label{sec:main_limitations}
 
-While the experimental setup provides a highly flexible and isolated environment for protocol evaluation, certain deterministic hardware and architecture constraints must be formalized to bound the validity of the empirical results:
+While the experimental setup provides a highly flexible and isolated environment for protocol evaluation, some hardware and architecture constraints need to be formalised to bound the validity of the empirical results:
 
 \begin{itemize}
-    \item \textbf{Non-Real-Time Operating System Scheduling:} Unlike industrial automotive testing equipment or bare-metal setups, the Raspberry Pi utilizes a general-purpose Linux kernel (Kali Linux). Even though the environment is optimized for penetration testing and packet manipulation, the scheduler lacks strict real-time deterministic behavior. Consequently, execution timing spikes, context-switching overheads, and non-deterministic process preemption can introduce jitter into the transmission of rapid sequential frames.
-    \item \textbf{Memory Buffering and Computational Constraints:} The platform's volatile memory (\gls{RAM}) capacity and memory-bus bandwidth impose rigid upper bounds on high-frequency packet capture operations. Continuous logging of saturating \gls{CAN} traffic or the compilation of massive cryptographic tables during automated brute-force routines can lead to resource exhaustion or dropped frames at high bus-load percentages.
-    \item \textbf{Hardware and Driver-Level Structural Constraints:} The software injection engine is fundamentally restricted by the architectural separation between the user-space applications and the low-level network driver stack (\textit{SocketCAN}). While timing intervals (such as inter-frame separation time) and the application payload can be dynamically altered by the user scripts, structural frame parameters like the Data Length Code (\gls{DLC}) or transport-layer state control flags cannot be arbitrarily malformed. Because the underlying hardware controller and kernel-level drivers validate and overwrite these fields automatically before scheduling them onto the physical bus, injecting structurally non-compliant or corrupted protocol headers to exploit parser vulnerabilities in the target \gls{ECU} is unfeasible without direct modification of the firmware of the network interface.
-   \item \textbf{Isolated Node Topology and Lack of Error Propagation Mapping:} The physical testbed features a minimized network architecture consisting of only one connected physical \gls{ECU}. While this deployment allows the validation of targeted client-server transactions, the absence of a comprehensive multi-node topology prevents the experimental analysis of horizontal exploit scaling. Specifically, it is impossible to evaluate cross-domain error propagation, cascading data link layer bus-offs, or the downstream behavioral anomalies that malicious payloads might trigger across independent gateway-bridged automotive subsystems. 
+    \item \textbf{Non-Real-Time Operating System Scheduling:} the Raspberry Pi is running a general-purpose Linux kernel as opposed to industrial automotive testing equipment or bare metal. The environment is optimized for penetration testing and packet manipulation but the scheduler is not guaranteed to  have strict real-time deterministic behaviour. Therefore execution time, context-switching overheads and non-deterministic process preemption can cause jitter in providing rapid sequential frames.
+    \item \textbf{Memory Buffering and Computational Constraints:} The volatile memory (\gls{RAM}) capacity and bus bandwidth of the platform impose rigid upper bounds to high-frequency packet capture operations. Continuous sniffing while performing memory demanding operations like bruteforcing can lead to an exhaustion of resources and must be accounted for when developing the code for penetration testing.
+    \item \textbf{Hardware and Driver-Level Structural Constraints:} Constraints on the software injection engine are derived from the architectural separation between the user-space applications and the low-level network driver stack (\textit{SocketCAN}). User scripts can change timing intervals and the application payload but not structural frame parameters such as the Data Length Code (\gls{DLC}) or transport-layer state control flags. The underlying hardware controller and kernel-level drivers automatically validate and overwrite these fields before scheduling them onto the physical bus, thus preventing injection of structurally non-compliant or corrupted protocol headers to exploit parser vulnerabilities in the target \gls{ECU} without direct modification of the firmware of the network interface.
+   \item \textbf{Isolated Node Topology and Lack of Error Propagation Mapping:} The physical testbed is based on a minimised network architecture, consisting of only one physical \gls{ECU}. Although this deployment enables the validation of targeted client-server transactions, the lack of a full multi-node topology precludes the experimental analysis of horizontal scaling of exploits. For example, cross-domain error propagation, cascading bus-offs, or downstream behavioural anomalies that malicious payloads could cause within independent gateway-bridged automotive subsystems cannot be evaluated. 
 \end{itemize}
